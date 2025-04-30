@@ -67,4 +67,4 @@ To add new features:
 
 ## License
 
-Copyright (c) 2016 TSK Engineers Private Limited. All rights reserved.
+[Add your license information here]
