@@ -6,7 +6,8 @@ from services.ai_service import generate_yaml_from_topic
 from services.document_service import (
     create_pptx_from_yaml,
     create_docx_from_yaml,
-    create_pdf_from_yaml
+    create_pdf_from_yaml,
+    create_html_from_yaml
 )
 import yaml
 
@@ -24,9 +25,14 @@ def index():
 def generate():
     topic = request.form.get('topic')
     file_type = request.form.get('file_type')
+    html_presentation_type = request.form.get('html_presentation_type', 'minimalist')  # Default to minimalist
     
     if not topic or not file_type:
         return jsonify({"success": False, "error": "Missing topic or file type"})
+    
+    # Validate HTML presentation type
+    if file_type == 'html' and html_presentation_type not in ['minimalist', 'modern', 'professional']:
+        html_presentation_type = 'minimalist'
     
     # Generate a unique ID for this file
     file_id = str(uuid.uuid4())
@@ -66,6 +72,13 @@ def generate():
         result = create_pdf_from_yaml(yaml_content, full_path)
         if result["success"]:
             result["file_url"] = f"/download/{file_name}.pdf"
+            result["preview"] = yaml_content_preview
+
+    elif file_type == "html":
+        full_path = f"{output_path}.html"
+        result = create_html_from_yaml(yaml_content, full_path, html_presentation_type=html_presentation_type)
+        if result["success"]:
+            result["file_url"] = f"/download/{file_name}.html"
             result["preview"] = yaml_content_preview
     
     return jsonify(result)

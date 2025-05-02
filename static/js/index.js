@@ -59,6 +59,16 @@ window.addEventListener('resize', () => {
     canvas.height = window.innerHeight;
 });
 
+// Toggle HTML Presentation Type Options
+function toggleHtmlOptions() {
+    const htmlOptions = document.getElementById('htmlOptions');
+    const isHtmlSelected = document.getElementById('html').checked;
+    htmlOptions.classList.toggle('hidden', !isHtmlSelected);
+    if (isHtmlSelected && !document.querySelector('input[name="html_presentation_type"]:checked')) {
+        document.getElementById('minimalist').checked = true;
+    }
+}
+
 // Form Submission Logic
 document.getElementById('generationForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -72,6 +82,11 @@ document.getElementById('generationForm').addEventListener('submit', function (e
 
     // Get form data
     const formData = new FormData(this);
+
+    // Validate HTML presentation type
+    if (formData.get('file_type') === 'html' && !formData.get('html_presentation_type')) {
+        formData.set('html_presentation_type', 'minimalist');
+    }
 
     // Send request
     fetch('/generate', {
@@ -114,7 +129,7 @@ document.getElementById('generationForm').addEventListener('submit', function (e
                             slide.bullets.forEach(bullet => {
                                 const bulletItem = document.createElement('li');
                                 bulletItem.textContent = bullet;
-                                bulletItem.classList.add('text-gray-700', 'textγη-sm');
+                                bulletItem.classList.add('text-gray-700', 'text-sm');
                                 bulletList.appendChild(bulletItem);
                             });
 
@@ -129,6 +144,13 @@ document.getElementById('generationForm').addEventListener('submit', function (e
                             imageNote.textContent = "Will include Pexels image slide after this content";
                             imageNote.classList.add('text-xs', 'text-indigo-600', 'mt-2', 'italic');
                             slideElement.appendChild(imageNote);
+                        }
+
+                        if (formData.get('file_type') === 'html') {
+                            const htmlNote = document.createElement('p');
+                            htmlNote.textContent = `HTML version includes interactive navigation (${formData.get('html_presentation_type')} style)`;
+                            htmlNote.classList.add('text-xs', 'text-indigo-600', 'mt-2', 'italic');
+                            slideElement.appendChild(htmlNote);
                         }
                     });
                 } else {
@@ -150,3 +172,8 @@ document.getElementById('generationForm').addEventListener('submit', function (e
             console.error('Error:', error);
         });
 });
+
+function updateTooltip(value) {
+    const tooltip = document.getElementById("tooltip");
+    tooltip.textContent = value || "Your input will show here...";
+}

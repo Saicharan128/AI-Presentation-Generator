@@ -19,10 +19,25 @@ def fix_yaml_format(yaml_text):
     fixed_text = re.sub(r"^\s*\*", "  -", fixed_text, flags=re.MULTILINE)
     return fixed_text
 
+import re
+
+def extract_slide_count(topic):
+    """Extract slide count from topic string like 'Topic Name (5 slides)'."""
+    match = re.search(r"\((\d+)\s*slides?\)", topic, re.IGNORECASE)
+    return int(match.group(1)) if match else 3
+
+def clean_topic_name(topic):
+    """Remove slide count part from topic for cleaner titles."""
+    return re.sub(r"\s*\(\d+\s*slides?\)", "", topic, flags=re.IGNORECASE).strip()
+
 def generate_yaml_from_topic(topic):
     """Generate presentation structure in YAML format based on a topic."""
+    slide_count = extract_slide_count(topic)
+    clean_topic = clean_topic_name(topic)
+
     prompt = (
-        f"Create a YAML for a detailed presentation on '{topic}'.\n"
+        f"Create a YAML for a detailed presentation on '{clean_topic}'.\n"
+        f"Limit it to {slide_count} slides.\n"
         f"The bullets MUST be complete explanatory sentences.\n"
         f"Format:\n"
         f"---\n"

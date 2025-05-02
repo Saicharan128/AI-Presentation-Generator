@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/black.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/monokai.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Arial&display=swap');
+
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            overflow: hidden;
+        }
+
+        .reveal .slides section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px;
+            box-sizing: border-box;
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .reveal .slides section.present {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal .slides section:not(.present) {
+            opacity: 0.4;
+        }
+
+        .slide-content {
+            max-width: 800px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .slide-title {
+            font-size: 2em;
+            margin-bottom: 1em;
+            color: #a78bfa;
+            text-align: center;
+        }
+
+        .slide-bullets {
+            text-align: left;
+            margin-left: 2em;
+            font-size: 0.875em;
+            line-height: 1.5;
+            color: #ffffff;
+        }
+
+        .slide-bullets li {
+            margin-bottom: 0.5em;
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .nav-dot.active {
+            background: #a78bfa;
+            box-shadow: 0 0 10px #a78bfa;
+        }
+
+        .nav-dot:hover {
+            background: #d1c4e9;
+            transform: scale(1.2);
+        }
+
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background: #a78bfa;
+            transition: width 0.6s ease-in-out;
+        }
+
+        .slide-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section class="slide-background">
+                <div class="slide-content">
+                    <h2 class="slide-title">Sample Slide</h2>
+                    <ul class="slide-bullets">
+                        <li>Gradient background design</li>
+                        <li>Purple title accents</li>
+                        <li>Smooth slide transitions</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div class="nav-bar" id="navBar"></div>
+    <div class="slide-indicator" id="slideIndicator">1 / 1</div>
+    <div class="progress-bar" id="progressBar" style="width: 100%;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/highlight.min.js"></script>
+    <script>
+        const deck = Reveal.initialize({
+            hash: true,
+            plugins: [RevealHighlight],
+            transition: 'slide',
+            transitionSpeed: 'default',
+            backgroundTransition: 'slide',
+            progress: false,
+            controls: false
+        });
+        const slideIndicator = document.getElementById('slideIndicator');
+        const progressBar = document.getElementById('progressBar');
+        const navBar = document.getElementById('navBar');
+        const totalSlides = Reveal.getTotalSlides();
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'nav-dot';
+            dot.addEventListener('click', () => Reveal.slide(i));
+            navBar.appendChild(dot);
+        }
+        function updateSlideInfo() {
+            const currentSlide = Reveal.getSlidePastCount() + 1;
+            slideIndicator.textContent = `${currentSlide} / ${totalSlides}`;
+            const progress = (currentSlide / totalSlides) * 100;
+            progressBar.style.width = `${progress}%`;
+            const dots = navBar.querySelectorAll('.nav-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlide - 1);
+            });
+        }
+        deck.addEventListener('slidechanged', updateSlideInfo);
+        deck.addEventListener('ready', updateSlideInfo);
+    </script>
+</body>
+
+</html>

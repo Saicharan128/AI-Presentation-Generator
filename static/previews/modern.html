@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Preview</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            overflow-x: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #3498db;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .slides-container {
+            height: calc(100vh - 120px);
+            width: 100%;
+            position: absolute;
+            top: 80px;
+            overflow: hidden;
+        }
+
+        .slides {
+            display: flex;
+            transition: transform 0.6s ease-in-out;
+            height: 100%;
+            width: 100%;
+        }
+
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            padding: 40px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-title {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .slide-content {
+            font-size: 1.4em;
+            margin-bottom: 30px;
+            color: #333;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        ul.bullets {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 30px;
+        }
+
+        ul.bullets li {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 1.3em;
+            color: #333;
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            background: #3498db;
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .nav-dot.active {
+            background: #2980b9;
+        }
+
+        .nav-dot:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+
+        .nav-dot:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .slide-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background: #3498db;
+            transition: width 0.6s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="presentation">
+        <div class="header">
+            <h1>Sample Presentation</h1>
+        </div>
+        <div class="slides-container">
+            <div class="slides" id="slides">
+                <div class="slide">
+                    <h2 class="slide-title">Sample Slide</h2>
+                    <ul class="bullets">
+                        <li>Blue header design</li>
+                        <li>Smooth slide navigation</li>
+                        <li>Centered content layout</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="nav-bar" id="navBar"></div>
+        <div class="slide-indicator" id="slideIndicator">1 / 1</div>
+        <div class="progress-bar" id="progressBar" style="width: 100%;"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const slides = document.getElementById('slides');
+            const slideIndicator = document.getElementById('slideIndicator');
+            const progressBar = document.getElementById('progressBar');
+            const navBar = document.getElementById('navBar');
+            const totalSlides = 1;
+            let currentSlide = 0;
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('button');
+                dot.className = 'nav-dot';
+                dot.addEventListener('click', () => {
+                    currentSlide = i;
+                    updateSlide();
+                });
+                navBar.appendChild(dot);
+            }
+            updateSlide();
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+                if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            });
+            function updateSlide() {
+                slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+                slideIndicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                const progress = ((currentSlide + 1) / totalSlides) * 100;
+                progressBar.style.width = `${progress}%`;
+                const dots = navBar.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentSlide);
+                    dot.disabled = index === currentSlide;
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
