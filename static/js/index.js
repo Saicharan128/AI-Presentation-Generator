@@ -105,6 +105,17 @@ document.getElementById('generationForm').addEventListener('submit', function (e
                 document.getElementById('resultContainer').classList.remove('hidden');
                 document.getElementById('downloadLink').href = data.file_url;
 
+                // Update preview images for HTML presentation types
+                if (data.preview_images) {
+                    const minimalistImg = document.querySelector('#htmlOptions img[alt="Minimalist Preview"]');
+                    const modernImg = document.querySelector('#htmlOptions img[alt="Modern Preview"]');
+                    const professionalImg = document.querySelector('#htmlOptions img[alt="Professional Preview"]');
+
+                    if (data.preview_images.minimalist) minimalistImg.src = data.preview_images.minimalist;
+                    if (data.preview_images.modern) modernImg.src = data.preview_images.modern;
+                    if (data.preview_images.professional) professionalImg.src = data.preview_images.professional;
+                }
+
                 // Show preview
                 const previewContent = document.getElementById('previewContent');
                 previewContent.innerHTML = '';
