@@ -255,10 +255,12 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
         background_img_data = fetch_consistent_background_image()
 
         for slide in slides_data:
-            title = slide.get('title', 'Untitled')
-            bullets = slide.get('bullets', [])
+            title = slide.get('title', 'Untitled').strip()
+            bullets = [b.strip() for b in slide.get('bullets', []) if b.strip()]
+            if not title and not bullets:
+                logger.warning(f"Skipping empty slide")
+                continue
 
-            # Fetch image for the slide
             img_url = search_pexels_image(f"{topic} {title}")
             logger.info(f"Image URL for slide '{title}': {img_url}")
 
@@ -343,7 +345,7 @@ def create_pdf_from_yaml(yaml_content, output_path):
         # Parse YAML
         try:
             data = yaml.safe_load(cleaned_yaml)
-        except yaml.YAMLError as e:
+        except yaml.YAMSError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
 
@@ -375,9 +377,7 @@ def create_pdf_from_yaml(yaml_content, output_path):
         return {"success": False, "error": str(e)}
 
 def create_html_from_yaml(yaml_content, output_path, html_presentation_type='minimalist'):
-    """Create HTML presentation from YAML content with distinct professional designs."""
     try:
-        # Validate inputs
         if not isinstance(yaml_content, str):
             logger.error(f"Expected string for yaml_content, got {type(yaml_content)}")
             return {"success": False, "error": f"Expected string for yaml_content, got {type(yaml_content)}"}
@@ -388,16 +388,13 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
             logger.error("Output path must end with .html")
             return {"success": False, "error": "Output path must end with .html"}
 
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Preprocess YAML content
         cleaned_yaml = preprocess_yaml_content(yaml_content)
         if not cleaned_yaml:
             logger.error("Failed to preprocess YAML content")
             return {"success": False, "error": "Failed to preprocess YAML content"}
 
-        # Parse YAML
         try:
             data = yaml.safe_load(cleaned_yaml)
         except yaml.YAMLError as e:
@@ -414,7 +411,6 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
             logger.error("No slides found in YAML")
             return {"success": False, "error": "No slides found"}
 
-        # Define distinct professional styles
         styles = {
             'professional': """
                 @import url('https://fonts.googleapis.com/css2?family=Arial&display=swap');
@@ -475,7 +471,6 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
             """
         }
 
-        # Validate presentation type
         if html_presentation_type not in styles:
             logger.warning(f"Invalid html_presentation_type: {html_presentation_type}, defaulting to minimalist")
             html_presentation_type = 'minimalist'
@@ -484,8 +479,13 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
 
         slide_sections = ""
         for slide in slides:
-            title = slide.get('title', 'Untitled Slide')
-            bullets = "<ul class='slide-bullets'>" + "".join(f"<li>{b}</li>" for b in slide.get('bullets', [])) + "</ul>" if slide.get('bullets') else ""
+            title = slide.get('title', 'Untitled Slide').strip()
+            bullets_list = [b.strip() for b in slide.get('bullets', []) if b.strip()]
+            if not title and not bullets_list:
+                logger.warning(f"Skipping empty slide")
+                continue
+
+            bullets = "<ul class='slide-bullets'>" + "".join(f"<li>{b}</li>" for b in bullets_list) + "</ul>" if bullets_list else ""
 
             if html_presentation_type == 'modern':
                 slide_sections += f'''

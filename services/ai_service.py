@@ -1,5 +1,6 @@
-from llama_cpp import Llama
 import re
+import yaml
+from llama_cpp import Llama
 from config import Config
 
 # Initialize model once
@@ -19,8 +20,6 @@ def fix_yaml_format(yaml_text):
     fixed_text = re.sub(r"^\s*\*", "  -", fixed_text, flags=re.MULTILINE)
     return fixed_text
 
-import re
-
 def extract_slide_count(topic):
     """Extract slide count from topic string like 'Topic Name (5 slides)'."""
     match = re.search(r"\((\d+)\s*slides?\)", topic, re.IGNORECASE)
@@ -30,11 +29,41 @@ def clean_topic_name(topic):
     """Remove slide count part from topic for cleaner titles."""
     return re.sub(r"\s*\(\d+\s*slides?\)", "", topic, flags=re.IGNORECASE).strip()
 
+def parse_specific_slides(prompt):
+    """Parse prompt for specific slide details (e.g., Slide 1: Title - Bullets)."""
+    slide_pattern = r"Slide\s*(\d+):\s*([^\n]+)\s*-\s*([^\n]+)"
+    matches = re.findall(slide_pattern, prompt, re.MULTILINE)
+    
+    slides = []
+    for match in matches:
+        slide_num, title, bullets = match
+        bullet_list = [b.strip() for b in bullets.split(";") if b.strip()]
+        slides.append({
+            "title": title.strip(),
+            "bullets": bullet_list
+        })
+    return slides
+
 def generate_yaml_from_topic(topic):
     """Generate presentation structure in YAML format based on a topic."""
-    slide_count = extract_slide_count(topic)
+    # Check if the prompt contains specific slide details
+    specific_slides = parse_specific_slides(topic)
     clean_topic = clean_topic_name(topic)
-
+    
+    if specific_slides:
+        # Use specific slides directly
+        presentation = {
+            "presentation": {
+                "title": clean_topic,
+                "slides": specific_slides
+            }
+        }
+        yaml_content = yaml.dump(presentation, sort_keys=False)
+        return f"---\n{yaml_content}\n---"
+    
+    # Fallback to model-based generation
+    slide_count = extract_slide_count(topic)
+    
     prompt = (
         f"Create a YAML for a detailed presentation on '{clean_topic}'.\n"
         f"Limit it to {slide_count} slides.\n"

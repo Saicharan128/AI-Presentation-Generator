@@ -9,6 +9,7 @@ from services.document_service import (
     create_pdf_from_yaml,
     create_html_from_yaml
 )
+from services.preview_service import generate_preview_images
 import yaml
 
 app = Flask(__name__)
@@ -49,6 +50,11 @@ def generate():
     except Exception as e:
         return jsonify({"success": False, "error": f"YAML generation error: {str(e)}"})
     
+    # Generate preview images for HTML presentation types
+    preview_images = {}
+    if file_type == 'html':
+        preview_images = generate_preview_images(yaml_content, topic, app.config['UPLOAD_FOLDER'])
+    
     # Process according to file type
     output_path = os.path.join(app.config['UPLOAD_FOLDER'], file_name)
     result = {"success": False, "error": "Invalid file type"}
@@ -80,6 +86,7 @@ def generate():
         if result["success"]:
             result["file_url"] = f"/download/{file_name}.html"
             result["preview"] = yaml_content_preview
+            result["preview_images"] = preview_images
     
     return jsonify(result)
 
