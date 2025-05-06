@@ -12,7 +12,6 @@ import re
 from services.image_service import (
     search_pexels_image,
     download_image,
-    is_bright_image,
     fetch_consistent_background_image
 )
 
@@ -158,7 +157,6 @@ def create_content_slides(prs, layout, title, bullets, font_size, background_img
         raise
 
 def add_image_slide(prs, layout, title, image_url, background_img_data=None):
-    """Add a slide with an image related to the topic."""
     try:
         img_data = download_image(image_url)
         if not img_data:
@@ -196,6 +194,7 @@ def add_image_slide(prs, layout, title, image_url, background_img_data=None):
         width, height = img.size
         max_w, max_h = Inches(10), Inches(5.5)
         scale = min(max_w / width, max_h / height)
+
         new_w, new_h = width * scale, height * scale
         left = (prs.slide_width - new_w) / 2
         top = (prs.slide_height - new_h + Inches(1)) / 2
@@ -246,13 +245,16 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
             logger.error("No slides found in YAML")
             return {"success": False, "error": "No slides found"}
 
+        # Get include_images flag
+        include_images = data.get('presentation', {}).get('include_images', True)
+
         prs = Presentation()
         layout = prs.slide_layouts[1]  # Bullet slide layout
         img_layout = prs.slide_layouts[5]  # Title only layout
         font_size = determine_optimal_font_size(slides_data, prs)
 
-        # Fetch consistent background image
-        background_img_data = fetch_consistent_background_image()
+        # Fetch consistent background image using topic
+        background_img_data = fetch_consistent_background_image(topic)
 
         for slide in slides_data:
             title = slide.get('title', 'Untitled').strip()
@@ -261,14 +263,14 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
                 logger.warning(f"Skipping empty slide")
                 continue
 
-            img_url = search_pexels_image(f"{topic} {title}")
-            logger.info(f"Image URL for slide '{title}': {img_url}")
-
             create_content_slides(prs, layout, title, bullets, font_size, background_img_data=background_img_data)
 
-            # Add image slide if URL is valid
-            if img_url:
-                add_image_slide(prs, img_layout, title, img_url, background_img_data=background_img_data)
+            # Add image slide if URL is valid and images are enabled
+            if include_images:
+                img_url = search_pexels_image(topic, slide_title=title)  # Pass slide title for more specific search
+                logger.info(f"Image URL for slide '{title}': {img_url}")
+                if img_url:
+                    add_image_slide(prs, img_layout, title, img_url, background_img_data=background_img_data)
 
         prs.save(output_path)
         logger.info(f"PowerPoint saved to {output_path}")
@@ -345,7 +347,7 @@ def create_pdf_from_yaml(yaml_content, output_path):
         # Parse YAML
         try:
             data = yaml.safe_load(cleaned_yaml)
-        except yaml.YAMSError as e:
+        except yaml.YAMLError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
 

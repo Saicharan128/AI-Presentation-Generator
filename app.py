@@ -27,6 +27,7 @@ def generate():
     topic = request.form.get('topic')
     file_type = request.form.get('file_type')
     html_presentation_type = request.form.get('html_presentation_type', 'minimalist')  # Default to minimalist
+    include_images = request.form.get('include_images', 'true').lower() == 'true'  # Default to true
     
     if not topic or not file_type:
         return jsonify({"success": False, "error": "Missing topic or file type"})
@@ -39,8 +40,8 @@ def generate():
     file_id = str(uuid.uuid4())
     file_name = f"{topic.replace(' ', '_')}_{file_id}"
     
-    # Generate YAML content
-    yaml_content = generate_yaml_from_topic(topic)
+    # Generate YAML content with the include_images flag
+    yaml_content = generate_yaml_from_topic(topic, include_images=include_images)
     yaml_content_preview = None
     
     try:

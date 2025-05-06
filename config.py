@@ -13,4 +13,5 @@ class Config:
     
     # Model settings
     MODEL_PATH = 'customweights.gguf'
+    IMAGE_MODEL_PATH = 'customweights.gguf'
     MODEL_CONTEXT_LENGTH = 1024
