@@ -1,6 +1,8 @@
 from pptx import Presentation
 from pptx.util import Pt, Inches
 from pptx.dml.color import RGBColor as PPTXRGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.oxml.xmlchemy import OxmlElement
 from docx import Document
 from fpdf import FPDF
 import yaml
@@ -9,15 +11,978 @@ from PIL import Image
 import os
 import logging
 import re
+import requests
+import base64
 from services.image_service import (
     search_pexels_image,
     download_image,
     fetch_consistent_background_image
 )
+from config import Config
+from jinja2 import Template
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Pexels API configuration
+PEXELS_API_KEY = Config.PEXELS_API_KEY
+PEXELS_API_URL = "https://api.pexels.com/v1/search"
+
+# HTML templates for different presentation styles
+HTML_TEMPLATES = {
+    'minimalist': """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f0f0;
+            overflow-x: hidden;
+        }
+
+        /* Presentation Container */
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: #ffffff;
+            color: #333333;
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        /* Slides Container */
+        .slides-container {
+            position: absolute;
+            top: 5rem;
+            width: 100%;
+            height: calc(100vh - 5rem);
+            overflow: hidden;
+        }
+        .slides {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        /* Slide Styles */
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 2rem;
+        }
+        .slide-image-container {
+            width: 40%;
+            padding: 1rem;
+        }
+        .slide-image {
+            max-width: 100%;
+            max-height: 30vh;
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+        .slide-content-container {
+            width: 60%;
+            padding: 1rem;
+        }
+        .slide-title {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #333333;
+            margin-bottom: 1rem;
+        }
+        .slide-content {
+            font-size: 1.2rem;
+            color: #555555;
+            margin-bottom: 1rem;
+        }
+        .bullets {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+        .bullets li {
+            font-size: 1.1rem;
+            color: #555555;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Navigation Styles */
+        .navigation {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+        .nav-btn {
+            background-color: #333333;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.3rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover {
+            background-color: #555555;
+        }
+        .nav-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Slide Indicator and Progress Bar */
+        .slide-indicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: #333333;
+            color: #ffffff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+        }
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 0.25rem;
+            background-color: #333333;
+            transition: width 0.3s;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .slide {
+                flex-direction: column;
+            }
+            .slide-image-container,
+            .slide-content-container {
+                width: 100%;
+            }
+            .slide-image {
+                max-height: 20vh;
+            }
+            .slide-title {
+                font-size: 1.5rem;
+            }
+            .slide-content,
+            .bullets li {
+                font-size: 1rem;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <header class="header">
+            <h1>{{ title }}</h1>
+        </header>
+        <div class="slides-container">
+            <div class="slides" id="slides">
+                {% for slide in slides %}
+                <section class="slide">
+                    {% if slide.image %}
+                    <div class="slide-image-container">
+                        <img class="slide-image" src="{{ slide.image }}" alt="{{ slide.title }}">
+                    </div>
+                    {% endif %}
+                    <div class="slide-content-container">
+                        <h2 class="slide-title">{{ slide.title }}</h2>
+                        {% if slide.content %}
+                        <p class="slide-content">{{ slide.content }}</p>
+                        {% endif %}
+                        {% if slide.bullets %}
+                        <ul class="bullets">
+                            {% for bullet in slide.bullets %}
+                            <li>{{ bullet }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+        </div>
+        <nav class="navigation">
+            <button class="nav-btn" id="prevBtn" aria-label="Previous Slide">←</button>
+            <button class="nav-btn" id="nextBtn" aria-label="Next Slide">→</button>
+        </nav>
+        <div class="slide-indicator" id="slideIndicator" aria-live="polite">1 / {{ slides|length }}</div>
+        <div class="progress-bar" id="progressBar" role="progressbar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.getElementById('slides');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const slideIndicator = document.getElementById('slideIndicator');
+            const progressBar = document.getElementById('progressBar');
+            const totalSlides = {{ slides|length }};
+            let currentSlide = 0;
+
+            const updateSlide = () => {
+                slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+                slideIndicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+                progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            };
+
+            const previousSlide = () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            };
+
+            const nextSlide = () => {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            };
+
+            prevBtn.addEventListener('click', previousSlide);
+            nextBtn.addEventListener('click', nextSlide);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') previousSlide();
+                if (e.key === 'ArrowRight') nextSlide();
+            });
+            window.addEventListener('resize', updateSlide);
+
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
+""",
+    'modern': """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e3f2fd;
+            overflow-x: hidden;
+        }
+
+        /* Presentation Container */
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            background-color: #ffffff;
+            position: relative;
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(90deg, #0288d1, #4fc3f7);
+            color: #ffffff;
+            padding: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 500;
+        }
+
+        /* Slides Container */
+        .slides-container {
+            position: absolute;
+            top: 4.5rem;
+            width: 100%;
+            height: calc(100vh - 4.5rem);
+            overflow: hidden;
+        }
+        .slides {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        /* Slide Styles */
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 2rem;
+            background-color: #fafafa;
+        }
+        .slide-image-container {
+            width: 40%;
+            padding: 1rem;
+        }
+        .slide-image {
+            max-width: 100%;
+            max-height: 30vh;
+            object-fit: cover;
+            border-radius: 0.625rem;
+            box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.15);
+        }
+        .slide-content-container {
+            width: 60%;
+            padding: 1rem;
+        }
+        .slide-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #0277bd;
+            margin-bottom: 1.25rem;
+        }
+        .slide-content {
+            font-size: 1.3rem;
+            color: #424242;
+            margin-bottom: 1.25rem;
+        }
+        .bullets {
+            list-style-type: square;
+            padding-left: 1.5rem;
+        }
+        .bullets li {
+            font-size: 1.2rem;
+            color: #424242;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Navigation Styles */
+        .navigation {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1.25rem;
+            z-index: 10;
+        }
+        .nav-btn {
+            background-color: #0288d1;
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover {
+            background-color: #0277bd;
+        }
+        .nav-btn:disabled {
+            background-color: #b0bec5;
+            cursor: not-allowed;
+        }
+
+        /* Slide Indicator and Progress Bar */
+        .slide-indicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: #0288d1;
+            color: #ffffff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 1.25rem;
+            font-size: 0.875rem;
+        }
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 0.3125rem;
+            background-color: #4fc3f7;
+            transition: width 0.3s;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .slide {
+                flex-direction: column;
+            }
+            .slide-image-container,
+            .slide-content-container {
+                width: 100%;
+            }
+            .slide-image {
+                max-height: 20vh;
+            }
+            .slide-title {
+                font-size: 1.6rem;
+            }
+            .slide-content,
+            .bullets li {
+                font-size: 1.1rem;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <header class="header">
+            <h1>{{ title }}</h1>
+        </header>
+        <div class="slides-container">
+            <div class="slides" id="slides">
+                {% for slide in slides %}
+                <section class="slide">
+                    {% if slide.image %}
+                    <div class="slide-image-container">
+                        <img class="slide-image" src="{{ slide.image }}" alt="{{ slide.title }}">
+                    </div>
+                    {% endif %}
+                    <div class="slide-content-container">
+                        <h2 class="slide-title">{{ slide.title }}</h2>
+                        {% if slide.content %}
+                        <p class="slide-content">{{ slide.content }}</p>
+                        {% endif %}
+                        {% if slide.bullets %}
+                        <ul class="bullets">
+                            {% for bullet in slide.bullets %}
+                            <li>{{ bullet }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+        </div>
+        <nav class="navigation">
+            <button class="nav-btn" id="prevBtn" aria-label="Previous Slide">←</button>
+            <button class="nav-btn" id="nextBtn" aria-label="Next Slide">→</button>
+        </nav>
+        <div class="slide-indicator" id="slideIndicator" aria-live="polite">1 / {{ slides|length }}</div>
+        <div class="progress-bar" id="progressBar" role="progressbar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.getElementById('slides');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const slideIndicator = document.getElementById('slideIndicator');
+            const progressBar = document.getElementById('progressBar');
+            const totalSlides = {{ slides|length }};
+            let currentSlide = 0;
+
+            const updateSlide = () => {
+                slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+                slideIndicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+                progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            };
+
+            const previousSlide = () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            };
+
+            const nextSlide = () => {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            };
+
+            prevBtn.addEventListener('click', previousSlide);
+            nextBtn.addEventListener('click', nextSlide);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') previousSlide();
+                if (e.key === 'ArrowRight') nextSlide();
+            });
+            window.addEventListener('resize', updateSlide);
+
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
+""",
+    'professional': """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #eceff1;
+            overflow-x: hidden;
+        }
+
+        /* Presentation Container */
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: #263238;
+            color: #ffffff;
+            padding: 1.5rem;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 400;
+        }
+
+        /* Slides Container */
+        .slides-container {
+            position: absolute;
+            top: 5rem;
+            width: 100%;
+            height: calc(100vh - 5rem);
+            overflow: hidden;
+        }
+        .slides {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        /* Slide Styles */
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 2rem;
+            background-color: #ffffff;
+        }
+        .slide-image-container {
+            width: 40%;
+            padding: 1rem;
+        }
+        .slide-image {
+            max-width: 100%;
+            max-height: 30vh;
+            object-fit: cover;
+            border: 1px solid #e0e0e0;
+        }
+        .slide-content-container {
+            width: 60%;
+            padding: 1rem;
+        }
+        .slide-title {
+            font-size: 1.9rem;
+            font-weight: 500;
+            color: #263238;
+            margin-bottom: 1rem;
+        }
+        .slide-content {
+            font-size: 1.2rem;
+            color: #37474f;
+            margin-bottom: 1rem;
+        }
+        .bullets {
+            list-style-type: circle;
+            padding-left: 1.5rem;
+        }
+        .bullets li {
+            font-size: 1.1rem;
+            color: #37474f;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Navigation Styles */
+        .navigation {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+        .nav-btn {
+            background-color: #263238;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.3rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover {
+            background-color: #37474f;
+        }
+        .nav-btn:disabled {
+            background-color: #b0bec5;
+            cursor: not-allowed;
+        }
+
+        /* Slide Indicator and Progress Bar */
+        .slide-indicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: #263238;
+            color: #ffffff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+        }
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 0.25rem;
+            background-color: #263238;
+            transition: width 0.3s;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .slide {
+                flex-direction: column;
+            }
+            .slide-image-container,
+            .slide-content-container {
+                width: 100%;
+            }
+            .slide-image {
+                max-height: 20vh;
+            }
+            .slide-title {
+                font-size: 1.5rem;
+            }
+            .slide-content,
+            .bullets li {
+                font-size: 1rem;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <header class="header">
+            <h1>{{ title }}</h1>
+        </header>
+        <div class="slides-container">
+            <div class="slides" id="slides">
+                {% for slide in slides %}
+                <section class="slide">
+                    {% if slide.image %}
+                    <div class="slide-image-container">
+                        <img class="slide-image" src="{{ slide.image }}" alt="{{ slide.title }}">
+                    </div>
+                    {% endif %}
+                    <div class="slide-content-container">
+                        <h2 class="slide-title">{{ slide.title }}</h2>
+                        {% if slide.content %}
+                        <p class="slide-content">{{ slide.content }}</p>
+                        {% endif %}
+                        {% if slide.bullets %}
+                        <ul class="bullets">
+                            {% for bullet in slide.bullets %}
+                            <li>{{ bullet }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+        </div>
+        <nav class="navigation">
+            <button class="nav-btn" id="prevBtn" aria-label="Previous Slide">←</button>
+            <button class="nav-btn" id="nextBtn" aria-label="Next Slide">→</button>
+        </nav>
+        <div class="slide-indicator" id="slideIndicator" aria-live="polite">1 / {{ slides|length }}</div>
+        <div class="progress-bar" id="progressBar" role="progressbar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.getElementById('slides');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const slideIndicator = document.getElementById('slideIndicator');
+            const progressBar = document.getElementById('progressBar');
+            const totalSlides = {{ slides|length }};
+            let currentSlide = 0;
+
+            const updateSlide = () => {
+                slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+                slideIndicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+                progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            };
+
+            const previousSlide = () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            };
+
+            const nextSlide = () => {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            };
+
+            prevBtn.addEventListener('click', previousSlide);
+            nextBtn.addEventListener('click', nextSlide);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') previousSlide();
+                if (e.key === 'ArrowRight') nextSlide();
+            });
+            window.addEventListener('resize', updateSlide);
+
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
+"""
+}
+
+def fetch_image_from_pexels(query):
+    """Fetch an image from Pexels API."""
+    try:
+        headers = {"Authorization": PEXELS_API_KEY}
+        params = {"query": query, "per_page": 1}
+        response = requests.get(PEXELS_API_URL, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data['photos']:
+                img_url = data['photos'][0]['src']['large']
+                img_response = requests.get(img_url)
+                return io.BytesIO(img_response.content)
+        logger.warning(f"No image found for query '{query}'")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching image from Pexels: {str(e)}")
+        return None
+
+def lighten_image(img_stream, factor=0.9):
+    """Lighten an image for use as a background."""
+    try:
+        img = Image.open(img_stream).convert("RGB")
+        enhancer = Image.new("RGB", img.size, (255, 255, 255))
+        img = Image.blend(img, enhancer, factor)
+        new_stream = io.BytesIO()
+        img.save(new_stream, format='PNG')
+        new_stream.seek(0)
+        return new_stream
+    except Exception as e:
+        logger.error(f"Error lightening image: {str(e)}")
+        return img_stream
+
+def add_shadow_to_shape(shape):
+    """Add a shadow effect to a shape."""
+    try:
+        sp = shape._element
+        spPr = sp.find('{http://schemas.openxmlformats.org/drawingml/2006/main}spPr')
+        if spPr is None:
+            spPr = OxmlElement('a:spPr')
+            sp.append(spPr)
+        
+        effect_lst = OxmlElement('a:effectLst')
+        outer_shdw = OxmlElement('a:outerShdw')
+        outer_shdw.set('dist', '20000')
+        outer_shdw.set('dir', '2700000')
+        outer_shdw.set('algn', 'ctr')
+        srgb_clr = OxmlElement('a:srgbClr')
+        srgb_clr.set('val', '000000')
+        alpha = OxmlElement('a:alpha')
+        alpha.set('val', '40000')
+        srgb_clr.append(alpha)
+        outer_shdw.append(srgb_clr)
+        effect_lst.append(outer_shdw)
+        spPr.append(effect_lst)
+    except Exception as e:
+        logger.warning(f"Failed to apply shadow to shape: {e}")
+
+def apply_element_properties(shape, properties):
+    """Apply formatting properties to a shape."""
+    if not shape.has_text_frame:
+        return
+    tf = shape.text_frame
+    tf.word_wrap = True
+    tf.auto_size = True
+    for paragraph in tf.paragraphs:
+        for run in paragraph.runs:
+            run.font.name = 'Calibri'
+            if 'font_size' in properties:
+                run.font.size = Pt(properties['font_size'])
+            if 'font_color' in properties:
+                r, g, b = properties['font_color']
+                run.font.color.rgb = PPTXRGBColor(r, g, b)
+    if 'alignment' in properties:
+        align_map = {'left': PP_ALIGN.LEFT, 'center': PP_ALIGN.CENTER, 'right': PP_ALIGN.RIGHT}
+        tf.paragraphs[0].alignment = align_map.get(properties['alignment'], PP_ALIGN.LEFT)
+    if properties.get('shadow', False):
+        try:
+            add_shadow_to_shape(shape)
+        except Exception as e:
+            logger.warning(f"Failed to apply shadow: {e}")
+
+def add_custom_image(slide, img_stream, properties):
+    """Add an image to a slide with specified properties."""
+    try:
+        left = Inches(properties.get('position', [0, 0])[0])
+        top = Inches(properties.get('position', [0, 0])[1])
+        width = Inches(properties.get('size', [6, 4])[0])
+        height = Inches(properties.get('size', [6, 4])[1])
+        slide.shapes.add_picture(img_stream, left, top, width=width, height=height)
+    except Exception as e:
+        logger.error(f"Error adding custom image: {str(e)}")
+
+def add_slide(prs, slide_data, slide_config, topic, background_img_data=None):
+    """Add a formatted slide to the presentation with dynamic positioning."""
+    try:
+        slide_layout = prs.slide_layouts[6]
+        slide = prs.slides.add_slide(slide_layout)
+
+        if background_img_data:
+            light_stream = lighten_image(io.BytesIO(background_img_data))
+            add_custom_image(slide, light_stream, {
+                "position": [0, 0],
+                "size": [10, 7.5]
+            })
+
+        header_shape = slide.shapes.add_shape(
+            1,
+            Inches(0), Inches(0),
+            Inches(10), Inches(slide_config['header']['height'])
+        )
+        fill = header_shape.fill
+        fill.solid()
+        r, g, b = slide_config['header']['color']
+        fill.fore_color.rgb = PPTXRGBColor(r, g, b)
+
+        title_text = slide_data.get('title', 'Untitled')
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(9), Inches(1.0))
+        tf = title_box.text_frame
+        tf.clear()
+        tf.word_wrap = True
+        tf.auto_size = True
+        p = tf.paragraphs[0]
+        run = p.add_run()
+        run.text = title_text
+        apply_element_properties(title_box, slide_config['title'])
+
+        content_y = 1.8
+        max_bullets = min(len(slide_data.get('bullets', [])), 3)
+
+        for i, item in enumerate(slide_data.get('bullets', [])[:max_bullets]):
+            content_box = slide.shapes.add_textbox(
+                Inches(0.5), Inches(content_y), Inches(9.0), Inches(0.8)
+            )
+            tf = content_box.text_frame
+            tf.clear()
+            tf.word_wrap = True
+            tf.auto_size = True
+            p = tf.paragraphs[0]
+            run = p.add_run()
+            run.text = f"• {item}"
+            apply_element_properties(content_box, slide_config['content'])
+            content_y += 1.0 + (len(item) // 80) * 0.4
+
+        content = slide_data.get('bullets', [])
+        icon_keyword = (content[0].split()[0].lower() if content else topic.lower().split()[0])
+        icon_stream = fetch_image_from_pexels(icon_keyword)
+        if icon_stream:
+            footer_y = max(6.0, content_y + 0.5)
+            footer_config = slide_config['footer'].copy()
+            footer_config['position'] = [6.5, footer_y]
+            add_custom_image(slide, icon_stream, footer_config)
+
+        return slide
+    except Exception as e:
+        logger.error(f"Error adding slide: {str(e)}")
+        raise
 
 def preprocess_yaml_content(yaml_content):
     """Preprocess YAML content to fix bullet characters and indentation."""
@@ -26,19 +991,19 @@ def preprocess_yaml_content(yaml_content):
             logger.error(f"Expected string for yaml_content, got {type(yaml_content)}")
             return None
 
-        # Replace bullet characters (•, *, etc.) with YAML-compatible hyphen (-)
+        # Remove any extra document markers
+        yaml_content = re.sub(r'^---\s*$', '', yaml_content, flags=re.MULTILINE)
+        yaml_content = yaml_content.strip()
+        
+        # Fix bullet points
         yaml_content = re.sub(r'^\s*[\•*]\s+', '  - ', yaml_content, flags=re.MULTILINE)
         
-        # Ensure consistent indentation (2 spaces for YAML lists)
         lines = yaml_content.splitlines()
         cleaned_lines = []
         for line in lines:
-            # Remove excessive whitespace and normalize indentation
             stripped = line.rstrip()
             if stripped:
-                # Count leading spaces
                 leading_spaces = len(line) - len(line.lstrip())
-                # Adjust indentation to 2 spaces for list items starting with '-'
                 if stripped.lstrip().startswith('-'):
                     cleaned_lines.append(' ' * (leading_spaces - (leading_spaces % 2)) + stripped.lstrip())
                 else:
@@ -53,163 +1018,9 @@ def preprocess_yaml_content(yaml_content):
         logger.error(f"Error preprocessing YAML content: {str(e)}")
         return None
 
-def determine_optimal_font_size(slides_data, presentation):
-    """Calculate optimal font size based on content amount."""
-    try:
-        font_sizes = [18, 16, 14, 12, 11, 10]
-        content_width = presentation.slide_width * 0.85
-        content_height = presentation.slide_height * 0.7
-
-        max_lines = 0
-        for slide_info in slides_data:
-            bullets = slide_info.get('bullets', [])
-            estimated_lines = 0
-            for bullet in bullets:
-                chars_per_line = int(content_width / Pt(12).inches * 2)
-                bullet_lines = max(1, len(bullet) / chars_per_line)
-                estimated_lines += bullet_lines + 0.5
-            max_lines = max(max_lines, estimated_lines)
-
-        for size in font_sizes:
-            line_height = Pt(size).inches * 1.2
-            max_possible = content_height / line_height
-            if max_lines <= max_possible:
-                return size
-        return 10
-    except Exception as e:
-        logger.error(f"Error in determine_optimal_font_size: {str(e)}")
-        return 10
-
-def create_content_slides(prs, layout, title, bullets, font_size, background_img_data=None):
-    """Create content slides with bullet points."""
-    try:
-        font_pt = Pt(font_size)
-        content_height = prs.slide_height * 0.6
-        content_top = Inches(1.5)
-        content_left = Inches(1)
-        content_width = prs.slide_width - Inches(2)
-
-        line_height = font_pt.pt * 1.3
-        max_lines = int(content_height / line_height)
-
-        current, remaining = [], bullets[:]
-        while remaining:
-            current, lines = [], 0
-            while remaining and lines < max_lines:
-                bullet = remaining[0]
-                chars_per_line = int(80 * (14 / font_size))
-                est_lines = max(1, len(bullet) / chars_per_line) + 0.5
-                if lines + est_lines <= max_lines:
-                    current.append(remaining.pop(0))
-                    lines += est_lines
-                else:
-                    break
-
-            slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank layout
-
-            # Add professional deep blue gradient background
-            from pptx.enum.dml import MSO_FILL
-            background = slide.background
-            fill = background.fill
-            fill.gradient()
-            fill.gradient_angle = 45
-            gradient_stops = fill.gradient_stops
-            gradient_stops[0].color.rgb = PPTXRGBColor(11, 61, 145)  # Deep Blue
-            gradient_stops[1].color.rgb = PPTXRGBColor(50, 100, 180)  # Lighter Blue
-
-            # Add background image if provided
-            if background_img_data:
-                img_stream = io.BytesIO(background_img_data)
-                slide.shapes.add_picture(img_stream, 0, 0, width=prs.slide_width, height=prs.slide_height)
-
-            # Add subtle gray border
-            from pptx.enum.shapes import MSO_SHAPE
-            border = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.1), Inches(0.1), prs.slide_width - Inches(0.2), prs.slide_height - Inches(0.2))
-            border.fill.solid()
-            border.fill.fore_color.rgb = PPTXRGBColor(0, 0, 0)
-            border.fill.fore_color.opacity = 0.0
-            border.line.color.rgb = PPTXRGBColor(176, 196, 222)  # Soft Gray
-            border.line.width = Pt(1)
-
-            # Add title
-            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), prs.slide_width - Inches(1.6), Inches(1))
-            title_frame = title_box.text_frame
-            title_frame.text = f"{title} (continued)" if remaining else title
-            title_p = title_frame.paragraphs[0]
-            title_p.font.size = Pt(font_size + 2)
-            title_p.font.bold = True
-            title_p.font.color.rgb = PPTXRGBColor(245, 245, 220)  # Light Beige
-            title_p.font.name = 'Arial'
-
-            # Add bullet points
-            content_box = slide.shapes.add_textbox(content_left, content_top, content_width, content_height)
-            tf = content_box.text_frame
-            tf.word_wrap = True
-            for bullet in current:
-                p = tf.add_paragraph()
-                p.text = bullet
-                p.level = 0
-                p.font.size = font_pt
-                p.font.color.rgb = PPTXRGBColor(245, 245, 220)  # Light Beige
-                p.font.name = 'Arial'
-    except Exception as e:
-        logger.error(f"Error in create_content_slides: {str(e)}")
-        raise
-
-def add_image_slide(prs, layout, title, image_url, background_img_data=None):
-    try:
-        img_data = download_image(image_url)
-        if not img_data:
-            logger.warning(f"Failed to download image from {image_url}")
-            return
-
-        slide = prs.slides.add_slide(layout)
-
-        # Add professional deep blue gradient background
-        from pptx.enum.dml import MSO_FILL
-        background = slide.background
-        fill = background.fill
-        fill.gradient()
-        fill.gradient_angle = 45
-        gradient_stops = fill.gradient_stops
-        gradient_stops[0].color.rgb = PPTXRGBColor(11, 61, 145)
-        gradient_stops[1].color.rgb = PPTXRGBColor(50, 100, 180)
-
-        # Add background image
-        if background_img_data:
-            bg_stream = io.BytesIO(background_img_data)
-            slide.shapes.add_picture(bg_stream, 0, 0, width=prs.slide_width, height=prs.slide_height)
-
-        # Add subtle gray border
-        from pptx.enum.shapes import MSO_SHAPE
-        border = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.1), Inches(0.1), prs.slide_width - Inches(0.2), prs.slide_height - Inches(0.2))
-        border.fill.solid()
-        border.fill.fore_color.rgb = PPTXRGBColor(0, 0, 0)
-        border.fill.fore_color.opacity = 0.0
-        border.line.color.rgb = PPTXRGBColor(176, 196, 222)
-        border.line.width = Pt(1)
-
-        # Add main image
-        img = Image.open(io.BytesIO(img_data))
-        width, height = img.size
-        max_w, max_h = Inches(10), Inches(5.5)
-        scale = min(max_w / width, max_h / height)
-
-        new_w, new_h = width * scale, height * scale
-        left = (prs.slide_width - new_w) / 2
-        top = (prs.slide_height - new_h + Inches(1)) / 2
-        slide.shapes.title.text = f"{title} - Visual"
-        slide.shapes.title.text_frame.paragraphs[0].font.color.rgb = PPTXRGBColor(245, 245, 220)
-        slide.shapes.title.text_frame.paragraphs[0].font.name = 'Arial'
-        slide.shapes.add_picture(io.BytesIO(img_data), left, top, width=new_w, height=new_h)
-    except Exception as e:
-        logger.error(f"Error in add_image_slide: {str(e)}")
-        raise
-
 def create_pptx_from_yaml(yaml_content, output_path, topic):
     """Create PowerPoint presentation from YAML content."""
     try:
-        # Validate inputs
         if not isinstance(yaml_content, str):
             logger.error(f"Expected string for yaml_content, got {type(yaml_content)}")
             return {"success": False, "error": f"Expected string for yaml_content, got {type(yaml_content)}"}
@@ -220,18 +1031,23 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
             logger.error("Output path must end with .pptx")
             return {"success": False, "error": "Output path must end with .pptx"}
 
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Preprocess YAML content
         cleaned_yaml = preprocess_yaml_content(yaml_content)
         if not cleaned_yaml:
             logger.error("Failed to preprocess YAML content")
             return {"success": False, "error": "Failed to preprocess YAML content"}
 
-        # Parse YAML
         try:
+            # First try to load as single document
             data = yaml.safe_load(cleaned_yaml)
+            if data is None:
+                # If empty, try loading all documents and take the first one
+                documents = list(yaml.safe_load_all(cleaned_yaml))
+                if documents:
+                    data = documents[0]
+                else:
+                    raise yaml.YAMLError("Empty YAML content")
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
@@ -245,36 +1061,70 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
             logger.error("No slides found in YAML")
             return {"success": False, "error": "No slides found"}
 
-        # Get include_images flag
         include_images = data.get('presentation', {}).get('include_images', True)
 
         prs = Presentation()
-        layout = prs.slide_layouts[1]  # Bullet slide layout
-        img_layout = prs.slide_layouts[5]  # Title only layout
-        font_size = determine_optimal_font_size(slides_data, prs)
 
-        # Fetch consistent background image using topic
+        title_slide = prs.slides.add_slide(prs.slide_layouts[0])
+        title_shape = title_slide.shapes.title
+        title_shape.text = data.get('presentation', {}).get('title', topic)
+        title_shape.text_frame.paragraphs[0].font.size = Pt(44)
+        title_shape.text_frame.paragraphs[0].font.color.rgb = PPTXRGBColor(0, 51, 102)
+        subtitle = title_slide.placeholders[1]
+        subtitle.text = f"Exploring {topic}"
+        subtitle.text_frame.paragraphs[0].font.size = Pt(24)
+        subtitle.text_frame.paragraphs[0].font.color.rgb = PPTXRGBColor(50, 50, 50)
+
         background_img_data = fetch_consistent_background_image(topic)
 
-        for slide in slides_data:
-            title = slide.get('title', 'Untitled').strip()
-            bullets = [b.strip() for b in slide.get('bullets', []) if b.strip()]
-            if not title and not bullets:
-                logger.warning(f"Skipping empty slide")
-                continue
+        slide_config = {
+            "header": {
+                "color": [0, 51, 102],
+                "height": 1.2
+            },
+            "title": {
+                "font_size": 32,
+                "font_color": [255, 255, 255],
+                "alignment": "center",
+                "shadow": True
+            },
+            "content": {
+                "font_size": 22,
+                "font_color": [10, 10, 10],
+                "position": [0.5, 2.0],
+                "shadow": True
+            },
+            "footer": {
+                "color": [100, 100, 100],
+                "position": [6.5, 4.0],
+                "size": [3.0, 3.0]
+            }
+        }
 
-            create_content_slides(prs, layout, title, bullets, font_size, background_img_data=background_img_data)
-
-            # Add image slide if URL is valid and images are enabled
+        for slide_data in slides_data:
             if include_images:
-                img_url = search_pexels_image(topic, slide_title=title)  # Pass slide title for more specific search
-                logger.info(f"Image URL for slide '{title}': {img_url}")
+                img_url = search_pexels_image(topic, slide_title=slide_data.get('title'))
                 if img_url:
-                    add_image_slide(prs, img_layout, title, img_url, background_img_data=background_img_data)
+                    img_data = download_image(img_url)
+                    if img_data:
+                        img_stream = io.BytesIO(img_data)
+                        slide = prs.slides.add_slide(prs.slide_layouts[5])
+                        slide.shapes.title.text = f"{slide_data.get('title', 'Untitled')} - Visual"
+                        slide.shapes.title.text_frame.paragraphs[0].font.color.rgb = PPTXRGBColor(245, 245, 220)
+                        slide.shapes.title.text_frame.paragraphs[0].font.name = 'Arial'
+                        img = Image.open(img_stream)
+                        width, height = img.size
+                        max_w, max_h = Inches(10), Inches(5.5)
+                        scale = min(max_w / width, max_h / height)
+                        new_w, new_h = width * scale, height * scale
+                        left = (prs.slide_width - new_w) / 2
+                        top = (prs.slide_height - new_h + Inches(1)) / 2
+                        slide.shapes.add_picture(io.BytesIO(img_data), left, top, width=new_w, height=new_h)
+            add_slide(prs, slide_data, slide_config, topic, background_img_data)
 
         prs.save(output_path)
         logger.info(f"PowerPoint saved to {output_path}")
-        return {"success": True, "font_size": font_size}
+        return {"success": True}
     except Exception as e:
         logger.error(f"Error in create_pptx_from_yaml: {str(e)}")
         return {"success": False, "error": str(e)}
@@ -282,7 +1132,6 @@ def create_pptx_from_yaml(yaml_content, output_path, topic):
 def create_docx_from_yaml(yaml_content, output_path):
     """Create Word document from YAML content."""
     try:
-        # Validate inputs
         if not isinstance(yaml_content, str):
             return {"success": False, "error": f"Expected string for yaml_content, got {type(yaml_content)}"}
         if not yaml_content.strip():
@@ -290,18 +1139,23 @@ def create_docx_from_yaml(yaml_content, output_path):
         if not output_path.endswith('.docx'):
             return {"success": False, "error": "Output path must end with .docx"}
 
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Preprocess YAML content
         cleaned_yaml = preprocess_yaml_content(yaml_content)
         if not cleaned_yaml:
             logger.error("Failed to preprocess YAML content")
             return {"success": False, "error": "Failed to preprocess YAML content"}
 
-        # Parse YAML
         try:
+            # First try to load as single document
             data = yaml.safe_load(cleaned_yaml)
+            if data is None:
+                # If empty, try loading all documents and take the first one
+                documents = list(yaml.safe_load_all(cleaned_yaml))
+                if documents:
+                    data = documents[0]
+                else:
+                    raise yaml.YAMLError("Empty YAML content")
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
@@ -327,7 +1181,6 @@ def create_docx_from_yaml(yaml_content, output_path):
 def create_pdf_from_yaml(yaml_content, output_path):
     """Create PDF document from YAML content."""
     try:
-        # Validate inputs
         if not isinstance(yaml_content, str):
             return {"success": False, "error": f"Expected string for yaml_content, got {type(yaml_content)}"}
         if not yaml_content.strip():
@@ -335,18 +1188,23 @@ def create_pdf_from_yaml(yaml_content, output_path):
         if not output_path.endswith('.pdf'):
             return {"success": False, "error": "Output path must end with .pdf"}
 
-        # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Preprocess YAML content
         cleaned_yaml = preprocess_yaml_content(yaml_content)
         if not cleaned_yaml:
             logger.error("Failed to preprocess YAML content")
             return {"success": False, "error": "Failed to preprocess YAML content"}
 
-        # Parse YAML
         try:
+            # First try to load as single document
             data = yaml.safe_load(cleaned_yaml)
+            if data is None:
+                # If empty, try loading all documents and take the first one
+                documents = list(yaml.safe_load_all(cleaned_yaml))
+                if documents:
+                    data = documents[0]
+                else:
+                    raise yaml.YAMLError("Empty YAML content")
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
@@ -378,7 +1236,50 @@ def create_pdf_from_yaml(yaml_content, output_path):
         logger.error(f"Error in create_pdf_from_yaml: {str(e)}")
         return {"success": False, "error": str(e)}
 
-def create_html_from_yaml(yaml_content, output_path, html_presentation_type='minimalist'):
+def process_images_for_slides(yaml_data, topic):
+    """Process images for slides, adding base64-encoded data URIs."""
+    try:
+        if not isinstance(yaml_data, dict) or 'presentation' not in yaml_data:
+            logger.error("Invalid YAML data: missing 'presentation' key")
+            return yaml_data
+
+        include_images = yaml_data.get('presentation', {}).get('include_images', True)
+        if not include_images:
+            logger.info("Images disabled for presentation")
+            return yaml_data
+
+        slides = yaml_data['presentation'].get('slides', [])
+        if not slides:
+            logger.warning("No slides found in YAML data")
+            return yaml_data
+
+        for slide in slides:
+            if slide.get('needs_image', True):
+                # Use slide title as primary keyword, fall back to topic
+                keyword = slide.get('title', topic)
+                img_url = search_pexels_image(topic, slide_title=keyword)
+                if img_url:
+                    img_data = download_image(img_url)
+                    if img_data:
+                        # Determine image format using PIL
+                        img = Image.open(io.BytesIO(img_data))
+                        format_map = {'JPEG': 'image/jpeg', 'PNG': 'image/png'}
+                        mime_type = format_map.get(img.format, 'image/jpeg')
+                        # Convert image data to base64 data URI
+                        img_base64 = base64.b64encode(img_data).decode('utf-8')
+                        slide['image'] = f"data:{mime_type};base64,{img_base64}"
+                        logger.info(f"Added image for slide '{slide.get('title', 'Untitled')}'")
+                    else:
+                        logger.warning(f"Failed to download image for keyword: {keyword}")
+                else:
+                    logger.warning(f"No image found for keyword: {keyword}")
+        return yaml_data
+    except Exception as e:
+        logger.error(f"Error processing images for slides: {str(e)}")
+        return yaml_data
+
+def create_html_from_yaml(yaml_content, output_path, topic, html_presentation_type='minimalist'):
+    """Create HTML presentation from YAML content using the specified template."""
     try:
         if not isinstance(yaml_content, str):
             logger.error(f"Expected string for yaml_content, got {type(yaml_content)}")
@@ -398,7 +1299,15 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
             return {"success": False, "error": "Failed to preprocess YAML content"}
 
         try:
+            # First try to load as single document
             data = yaml.safe_load(cleaned_yaml)
+            if data is None:
+                # If empty, try loading all documents and take the first one
+                documents = list(yaml.safe_load_all(cleaned_yaml))
+                if documents:
+                    data = documents[0]
+                else:
+                    raise yaml.YAMLError("Empty YAML content")
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error: {str(e)}")
             return {"success": False, "error": f"YAML parsing error: {str(e)}"}
@@ -407,249 +1316,34 @@ def create_html_from_yaml(yaml_content, output_path, html_presentation_type='min
             logger.error("Invalid YAML structure: missing 'presentation' key")
             return {"success": False, "error": "Invalid YAML structure: missing 'presentation' key"}
 
-        presentation_title = data.get('presentation', {}).get('title', 'AI-Generated Presentation')
-        slides = data.get('presentation', {}).get('slides', [])
+        presentation_data = data.get('presentation', {})
+        slides = presentation_data.get('slides', [])
         if not slides:
             logger.error("No slides found in YAML")
             return {"success": False, "error": "No slides found"}
 
-        styles = {
-            'professional': """
-                @import url('https://fonts.googleapis.com/css2?family=Arial&display=swap');
-                body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: #1a1a2e; overflow: hidden; }
-                .reveal .slides section { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #ffffff; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 40px; box-sizing: border-box; transition: transform 0.6s ease-in-out; }
-                .reveal .slides section.present { opacity: 1; transform: translateX(0); }
-                .reveal .slides section:not(.present) { opacity: 0.4; }
-                .slide-content { max-width: 800px; margin: 0 auto; animation: fadeIn 0.5s ease-in-out; }
-                .slide-title { font-size: 2em; margin-bottom: 1em; color: #a78bfa; text-align: center; }
-                .slide-bullets { text-align: left; margin-left: 2em; font-size: 0.875em; line-height: 1.5; color: #ffffff; }
-                .slide-bullets li { margin-bottom: 0.5em; }
-                .nav-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-                .nav-dot { width: 12px; height: 12px; background: #ffffff; border-radius: 50%; cursor: pointer; transition: background 0.3s ease-in-out, transform 0.3s ease-in-out; }
-                .nav-dot.active { background: #a78bfa; box-shadow: 0 0 10px #a78bfa; }
-                .nav-dot:hover { background: #d1c4e9; transform: scale(1.2); }
-                .progress-bar { position: fixed; bottom: 0; left: 0; height: 5px; background: #a78bfa; transition: width 0.6s ease-in-out; }
-                .slide-indicator { position: fixed; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.5); color: #ffffff; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-            """,
-            'modern': """
-                @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap');
-                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; overflow-x: hidden; }
-                .presentation { width: 100vw; height: 100vh; position: relative; background: #ffffff; overflow: hidden; }
-                .header { background: #3498db; color: #ffffff; padding: 20px; text-align: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
-                .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
-                .slides-container { height: calc(100vh - 120px); width: 100%; position: absolute; top: 80px; overflow: hidden; }
-                .slides { display: flex; transition: transform 0.6s ease-in-out; height: 100%; width: 100%; }
-                .slide { min-width: 100%; height: 100%; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
-                .slide-title { font-size: 2.5em; margin-bottom: 30px; color: #2c3e50; text-align: center; }
-                .slide-content { font-size: 1.4em; margin-bottom: 30px; color: #333; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto; }
-                ul.bullets { max-width: 800px; margin-left: auto; margin-right: auto; padding-left: 30px; }
-                ul.bullets li { margin-bottom: 15px; line-height: 1.6; font-size: 1.3em; color: #333; }
-                .nav-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 100; }
-                .nav-dot { background: #3498db; color: #ffffff; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: background 0.3s ease-in-out, transform 0.3s ease-in-out; }
-                .nav-dot.active { background: #2980b9; }
-                .nav-dot:hover { background: #2980b9; transform: scale(1.1); }
-                .nav-dot:disabled { background: #bdc3c7; cursor: not-allowed; }
-                .slide-indicator { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: #ffffff; padding: 8px 12px; border-radius: 20px; font-size: 14px; }
-                .progress-bar { position: fixed; bottom: 0; left: 0; height: 5px; background: #3498db; transition: width 0.6s ease-in-out; }
-            """,
-            'minimalist': """
-                @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400&display=swap');
-                body { font-family: 'Open Sans', sans-serif; margin: 0; padding: 0; background: #4A7043; overflow: hidden; }
-                .reveal .slides section { background: transparent; color: #FDF6E3; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 40px; box-sizing: border-box; transition: transform 0.6s ease-in-out; }
-                .reveal .slides section.present { opacity: 1; transform: translateX(0); }
-                .reveal .slides section:not(.present) { opacity: 0; }
-                .slide-content { max-width: 800px; margin: 0 auto; animation: fadeIn 0.5s ease-in-out; }
-                .slide-title { font-size: 2em; margin-bottom: 20px; color: #E07A5F; text-align: center; font-weight: 300; }
-                .slide-bullets { text-align: left; margin-left: 0; font-size: 1em; line-height: 1.6; color: #FDF6E3; }
-                .slide-bullets li { margin-bottom: 0.6em; }
-                .nav-bar { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
-                .nav-dot { width: 8px; height: 8px; background: #FDF6E3; border-radius: 50%; cursor: pointer; transition: background 0.3s ease-in-out, transform 0.3s ease-in-out; }
-                .nav-dot.active { background: #E07A5F; }
-                .nav-dot:hover { background: #FFFFFF; opacity: 0.7; transform: scale(1.2); }
-                .progress-bar { position: fixed; bottom: 0; left: 0; height: 5px; background: #E07A5F; transition: width 0.6s ease-in-out; }
-                .slide-indicator { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); color: #ffffff; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-            """
+        # Process images for slides
+        data = process_images_for_slides(data, topic)
+
+        # Prepare data for Jinja template
+        template_data = {
+            'title': presentation_data.get('title', 'AI-Generated Presentation'),
+            'slides': [
+                {
+                    'title': slide.get('title', 'Untitled Slide'),
+                    'content': slide.get('content', ''),
+                    'bullets': slide.get('bullets', []),
+                    'image': slide.get('image', '')
+                } for slide in slides if slide.get('title') or slide.get('content') or slide.get('bullets')
+            ]
         }
 
-        if html_presentation_type not in styles:
-            logger.warning(f"Invalid html_presentation_type: {html_presentation_type}, defaulting to minimalist")
-            html_presentation_type = 'minimalist'
-
-        custom_style = styles[html_presentation_type]
-
-        slide_sections = ""
-        for slide in slides:
-            title = slide.get('title', 'Untitled Slide').strip()
-            bullets_list = [b.strip() for b in slide.get('bullets', []) if b.strip()]
-            if not title and not bullets_list:
-                logger.warning(f"Skipping empty slide")
-                continue
-
-            bullets = "<ul class='slide-bullets'>" + "".join(f"<li>{b}</li>" for b in bullets_list) + "</ul>" if bullets_list else ""
-
-            if html_presentation_type == 'modern':
-                slide_sections += f'''
-                <div class="slide">
-                    <h2 class="slide-title">{title}</h2>
-                    {bullets.replace('slide-bullets', 'bullets')}
-                </div>
-                '''
-            else:
-                slide_sections += f'''
-                <section class="{'slide-background' if html_presentation_type == 'professional' else ''}">
-                    <div class="slide-content">
-                        <h2 class="slide-title">{title}</h2>
-                        {bullets}
-                    </div>
-                </section>
-                '''
-
-        html_template = ""
-        if html_presentation_type == 'modern':
-            html_template = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{presentation_title}</title>
-    <style>
-        {custom_style}
-    </style>
-</head>
-<body>
-    <div class="presentation">
-        <div class="header">
-            <h1>{presentation_title}</h1>
-        </div>
-        <div class="slides-container">
-            <div class="slides" id="slides">
-                {slide_sections}
-            </div>
-        </div>
-        <div class="nav-bar" id="navBar"></div>
-        <div class="slide-indicator" id="slideIndicator">1 / {len(slides)}</div>
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {{
-            const slides = document.getElementById('slides');
-            const slideIndicator = document.getElementById('slideIndicator');
-            const progressBar = document.getElementById('progressBar');
-            const navBar = document.getElementById('navBar');
-            const totalSlides = {len(slides)};
-            let currentSlide = 0;
-
-            // Create navigation dots
-            for (let i = 0; i < totalSlides; i++) {{
-                const dot = document.createElement('button');
-                dot.className = 'nav-dot';
-                dot.addEventListener('click', () => {{
-                    currentSlide = i;
-                    updateSlide();
-                }});
-                navBar.appendChild(dot);
-            }}
-
-            // Initialize
-            updateSlide();
-
-            // Keyboard navigation
-            document.addEventListener('keydown', function(e) {{
-                if (e.key === 'ArrowLeft' && currentSlide > 0) {{
-                    currentSlide--;
-                    updateSlide();
-                }}
-                if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {{
-                    currentSlide++;
-                    updateSlide();
-                }}
-            }});
-
-            function updateSlide() {{
-                slides.style.transform = `translateX(-${{currentSlide * 100}}%)`;
-                slideIndicator.textContent = `${{currentSlide + 1}} / ${{totalSlides}}`;
-                const progress = ((currentSlide + 1) / totalSlides) * 100;
-                progressBar.style.width = `${{progress}}%`;
-                const dots = navBar.querySelectorAll('.nav-dot');
-                dots.forEach((dot, index) => {{
-                    dot.classList.toggle('active', index === currentSlide);
-                    dot.disabled = index === currentSlide;
-                }});
-            }}
-        }});
-    </script>
-</body>
-</html>'''
-        else:
-            html_template = f'''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{presentation_title}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/black.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/monokai.min.css">
-    <style>
-        {custom_style}
-    </style>
-</head>
-<body>
-    <div class="reveal">
-        <div class="slides">
-            {slide_sections}
-        </div>
-    </div>
-    <div class="nav-bar" id="navBar"></div>
-    <div class="slide-indicator" id="slideIndicator">1 / {len(slides)}</div>
-    <div class="progress-bar" id="progressBar"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/highlight.min.js"></script>
-    <script>
-        const deck = Reveal.initialize({{
-            hash: true,
-            plugins: [RevealHighlight],
-            transition: 'slide',
-            transitionSpeed: 'default',
-            backgroundTransition: 'slide',
-            progress: false,
-            controls: false
-        }});
-
-        const slideIndicator = document.getElementById('slideIndicator');
-        const progressBar = document.getElementById('progressBar');
-        const navBar = document.getElementById('navBar');
-        const totalSlides = Reveal.getTotalSlides();
-
-        // Create navigation dots
-        for (let i = 0; i < totalSlides; i++) {{
-            const dot = document.createElement('div');
-            dot.className = 'nav-dot';
-            dot.addEventListener('click', () => Reveal.slide(i));
-            navBar.appendChild(dot);
-        }}
-
-        function updateSlideInfo() {{
-            const currentSlide = Reveal.getSlidePastCount() + 1;
-            slideIndicator.textContent = `${{currentSlide}} / ${{totalSlides}}`;
-            const progress = (currentSlide / totalSlides) * 100;
-            progressBar.style.width = `${{progress}}%`;
-            const dots = navBar.querySelectorAll('.nav-dot');
-            dots.forEach((dot, index) => {{
-                dot.classList.toggle('active', index === currentSlide - 1);
-            }});
-        }}
-
-        deck.addEventListener('slidechanged', updateSlideInfo);
-        deck.addEventListener('ready', updateSlideInfo);
-    </script>
-</body>
-</html>'''
+        # Select the appropriate template
+        jinja_template = Template(HTML_TEMPLATES.get(html_presentation_type, HTML_TEMPLATES['minimalist']))
+        html_content = jinja_template.render(**template_data)
 
         with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(html_template)
+            f.write(html_content)
         
         logger.info(f"HTML presentation saved to {output_path}")
         return {"success": True}

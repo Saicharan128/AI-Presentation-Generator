@@ -49,7 +49,7 @@ def generate():
         preview_data = yaml.safe_load(yaml_content)
         yaml_content_preview = preview_data
     except Exception as e:
-        return jsonify({"success": False, "error": f"YAML generation error: {str(e)}"})
+        return jsonify({"success": False, "error": f"YAML parsing error: {str(e)}"})
     
     # Generate preview images for HTML presentation types
     preview_images = {}
@@ -83,7 +83,7 @@ def generate():
 
     elif file_type == "html":
         full_path = f"{output_path}.html"
-        result = create_html_from_yaml(yaml_content, full_path, html_presentation_type=html_presentation_type)
+        result = create_html_from_yaml(yaml_content, full_path, topic, html_presentation_type=html_presentation_type)
         if result["success"]:
             result["file_url"] = f"/download/{file_name}.html"
             result["preview"] = yaml_content_preview

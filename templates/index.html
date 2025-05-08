@@ -92,20 +92,19 @@
                     <div id="presentationStyles" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center selected-thumbnail"
                             data-style="minimalist">
-                            <img src="{{ url_for('static', filename='previews/minimalist.png') }}"
-                                alt="Minimalist Style" class="w-full h-32 object-cover">
+                            <img src="/static/previews/minimalist.png" alt="Minimalist Style"
+                                class="w-full h-32 object-cover">
                             <p class="mt-2">Minimalist</p>
                         </div>
                         <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center"
                             data-style="modern">
-                            <img src="{{ url_for('static', filename='previews/modern.png') }}" alt="Modern Style"
-                                class="w-full h-32 object-cover">
+                            <img src="/static/previews/modern.png" alt="Modern Style" class="w-full h-32 object-cover">
                             <p class="mt-2">Modern</p>
                         </div>
                         <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center"
                             data-style="professional">
-                            <img src="{{ url_for('static', filename='previews/professional.png') }}"
-                                alt="Professional Style" class="w-full h-32 object-cover">
+                            <img src="/static/previews/professional.png" alt="Professional Style"
+                                class="w-full h-32 object-cover">
                             <p class="mt-2">Professional</p>
                         </div>
                     </div>
@@ -275,7 +274,6 @@
             });
         });
     </script>
-    <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'93b1d21f9f6b442b',t:'MTc0NjQ2NDcwNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
 </body>
 
 </html>

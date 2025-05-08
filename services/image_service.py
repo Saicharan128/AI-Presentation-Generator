@@ -13,7 +13,6 @@ def generate_search_terms(query, slide_title=None):
     query = re.sub(r'[^\w\s]', '', query.lower()).strip()
     
     search_terms = [query]
-
     if slide_title:
         slide_title = re.sub(r'[^\w\s]', '', slide_title.lower()).strip()
         search_terms.append(f"{query} {slide_title}")
@@ -49,7 +48,7 @@ def search_pexels_image(query, slide_title=None):
         headers = {'Authorization': Config.PEXELS_API_KEY}
         search_terms = generate_search_terms(query, slide_title)
         bright_images = []
-        per_page = 10  # Fetch more images to increase selection pool
+        per_page = 10
         
         for term in search_terms:
             url = f"https://api.pexels.com/v1/search?query={term}&per_page={per_page}&orientation=landscape"
@@ -70,10 +69,8 @@ def search_pexels_image(query, slide_title=None):
                 if img_data and is_bright_image(img_data, threshold=180):
                     bright_images.append(img_url)
             
-            if bright_images:
-                # Stop searching if we have enough bright images
-                if len(bright_images) >= 3:
-                    break
+            if len(bright_images) >= 3:
+                break
         
         if bright_images:
             selected_image = random.choice(bright_images)
@@ -102,9 +99,9 @@ def fetch_consistent_background_image(topic, count=1):
     """Fetch a consistent bright background image for slides based on topic."""
     try:
         headers = {'Authorization': Config.PEXELS_API_KEY}
-        search_terms = generate_search_terms(topic)  # Use topic for search terms
+        search_terms = generate_search_terms(topic)
         bright_images = []
-        per_page = 5  # Fetch fewer images for backgrounds to optimize performance
+        per_page = 5
         
         for term in search_terms:
             url = f"https://api.pexels.com/v1/search?query={term}&per_page={per_page}&orientation=landscape"
@@ -125,14 +122,14 @@ def fetch_consistent_background_image(topic, count=1):
                     bright_images.append(img_data)
             
             if bright_images:
-                break  # Stop searching once we have bright images
+                break
         
         if bright_images:
             selected_image = random.choice(bright_images)
             logger.info(f"Randomly selected background image for topic '{topic}'")
             return selected_image
         
-        # Fallback to generic bright backgrounds if topic-specific search fails
+        # Fallback to generic bright backgrounds
         fallback_terms = [
             "white abstract background",
             "light texture background",

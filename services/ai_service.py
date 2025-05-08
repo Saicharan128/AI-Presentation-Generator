@@ -8,10 +8,18 @@ model = Llama(model_path=Config.MODEL_PATH, n_ctx=Config.MODEL_CONTEXT_LENGTH)
 
 def extract_yaml_block(text):
     """Extract YAML content from model output."""
-    if "---" in text:
-        yaml_parts = text.split("---", 1)
-        return "---" + yaml_parts[1].split("\n---")[0]
-    else:
+    try:
+        if "---" in text:
+            # Split on first --- and take everything until next --- or end
+            parts = text.split("---", 1)
+            yaml_content = "---" + parts[1].split("\n---", 1)[0]
+            # Ensure we only have one document by removing any remaining ---
+            yaml_content = yaml_content.split("\n---", 1)[0]
+            return yaml_content.strip()
+        else:
+            return "---\npresentation:\n  slides: []"
+    except Exception as e:
+        print(f"Error extracting YAML block: {e}")
         return "---\npresentation:\n  slides: []"
 
 def fix_yaml_format(yaml_text):
@@ -88,7 +96,7 @@ def generate_yaml_from_topic(topic, include_images=True):
 
     response = model.create_chat_completion(
         messages=chat_messages,
-        max_tokens=700,
+        max_tokens=1500,
         temperature=0.3,
         top_p=0.9,
         stop=["</s>"]
@@ -128,7 +136,7 @@ def generate_yaml_from_topic(topic, include_images=True):
             
             response = model.create_chat_completion(
                 messages=chat_messages,
-                max_tokens=700,
+                max_tokens=1500,
                 temperature=0.3,
                 top_p=0.9,
                 stop=["</s>"]
