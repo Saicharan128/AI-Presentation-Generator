@@ -4,446 +4,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login / Register</title>
-    <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script>
-    <script type="text/javascript">
-        WebFont.load({
-            google: {
-                families: ["Inconsolata:400,700", "Sora:100,200,300,regular,500,600,700,800", "Unbounded:200,300,regular,500,600,700,800,900"]
-            }
-        });
-    </script>
+    <title>AI Generation Hub - Authentication</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Make text look crisper and more legible in all browsers */
         body {
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-smoothing: antialiased;
-            text-rendering: optimizeLegibility;
+            background: linear-gradient(135deg, #0f1115 0%, #1a1c23 100%);
+            font-family: 'Inter', sans-serif;
+            color: rgba(255, 255, 255, 0.95);
             margin: 0;
             padding: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: 'Sora', sans-serif;
-        }
-
-        /* Focus state style for keyboard navigation for the focusable elements */
-        *[tabindex]:focus-visible,
-        input[type="file"]:focus-visible {
-            outline: 0.125rem solid #4d65ff;
-            outline-offset: 0.125rem;
-        }
-
-        .page-wrapper {
-            background-color: #000;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .main-wrapper {
-            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem;
         }
 
-        .section_hero {
+        .container {
             width: 100%;
+            max-width: 450px;
+            padding: 0 20px;
         }
 
-        .background-style-1 {
-            background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
-        }
-
-        .section_header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .padding-vertical {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-
-        .header_inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .link-block {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: #fff;
-        }
-
-        .logo {
-            width: 40px;
-            height: 40px;
-        }
-
-        .text-block {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .header_nav {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .header_nav-item {
-            color: #ccc;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 400;
-            transition: color 0.3s ease;
-        }
-
-        .header_nav-item:hover {
-            color: #fff;
-        }
-
-        .hide-mobile-landscape {
-            display: flex;
-        }
-
-        @media screen and (max-width: 767px) {
-            .hide-mobile-landscape {
-                display: none;
-            }
-        }
-
-        /* Auth Container Styles */
         .auth-container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            font-family: 'Sora', sans-serif;
-            background: rgba(17, 17, 17, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            margin-top: 120px;
-        }
-
-        .auth-toggle {
-            display: flex;
-            margin-bottom: 32px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(38, 40, 44, 0.3);
             border-radius: 12px;
-            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 35px;
+            backdrop-filter: blur(10px);
         }
 
-        .auth-toggle button {
-            flex: 1;
-            padding: 12px 16px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.6);
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            font-family: 'Sora', sans-serif;
-            font-weight: 500;
-        }
-
-        .auth-toggle button.active {
-            color: #fff;
-            background: #2a61fb;
-            box-shadow: 0 4px 12px rgba(42, 97, 251, 0.3);
-        }
-
-        .auth-form {
-            opacity: 1;
-            transform: translateY(0);
-            transition: all 0.3s ease;
-        }
-
-        .auth-form:not(.active) {
-            display: none;
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        .auth-form.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .auth-form h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 1.5rem;
+        .auth-header {
             text-align: center;
-            font-family: 'Sora', sans-serif;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 14px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: rgba(26, 28, 32, 0.5);
+            border-radius: 6px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.65);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab-button.active {
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+        }
+
+        .tab-button:hover:not(.active) {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .form-group {
             margin-bottom: 20px;
         }
 
-        .form-group label {
+        .form-label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 14px;
             font-weight: 500;
-            color: #ccc;
-            font-size: 0.9rem;
         }
 
-        .form-group input {
+        .form-control {
             width: 100%;
-            padding: 14px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            font-size: 16px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(26, 28, 32, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 12px 15px;
             color: #fff;
-            transition: all 0.3s ease;
-            font-family: 'Sora', sans-serif;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
             box-sizing: border-box;
+            transition: all 0.2s ease;
         }
 
-        .form-group input:focus {
+        .form-control:focus {
             outline: none;
-            border-color: #2a61fb;
-            box-shadow: 0 0 0 3px rgba(42, 97, 251, 0.1);
-            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
 
-        .form-group input::placeholder {
+        .form-control::placeholder {
             color: rgba(255, 255, 255, 0.4);
         }
 
-        .submit-btn {
+        .btn-primary {
+            display: block;
             width: 100%;
-            padding: 14px;
-            background: #2a61fb;
+            background: rgba(59, 130, 246, 0.9);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 6px;
+            padding: 12px 15px;
+            font-weight: 500;
+            font-size: 15px;
             cursor: pointer;
-            margin-top: 16px;
-            transition: all 0.3s ease;
-            font-family: 'Sora', sans-serif;
+            transition: background 0.2s ease;
+            font-family: 'Inter', sans-serif;
             position: relative;
             overflow: hidden;
         }
 
-        .submit-btn:hover:not(:disabled) {
-            background: #1a4fd8;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(42, 97, 251, 0.4);
+        .btn-primary:hover {
+            background: rgba(59, 130, 246, 1);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.7;
+        .btn-primary:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .loading-spinner {
+        .loading {
             display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #ffffff;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid #ffffff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-right: 8px;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         @keyframes spin {
-            to {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
                 transform: rotate(360deg);
             }
         }
 
-        .message {
-            margin-top: 20px;
-            padding: 12px 16px;
-            border-radius: 8px;
+        .alert {
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .form-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+
+        .protected-content {
+            display: none;
             text-align: center;
-            transition: all 0.3s ease;
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
+            padding: 20px 0;
         }
 
-        .message.visible {
-            max-height: 100px;
-            opacity: 1;
-            margin-top: 20px;
+        .protected-content h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
         }
 
-        .message.success {
-            background-color: rgba(34, 197, 94, 0.1);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
+        .protected-content p {
+            color: rgba(255, 255, 255, 0.65);
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
-        .message.error {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+        .btn-secondary {
+            padding: 10px 20px;
+            background: rgba(107, 114, 128, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Footer styles */
-        .section_footer {
-            background: #111;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 2rem 0;
+        .btn-secondary:hover {
+            background: rgba(107, 114, 128, 0.7);
         }
 
-        .container-large {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .footer_bottom-wrapper {
-            text-align: center;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .footer_credit-text {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        /* Responsive */
-        @media screen and (max-width: 480px) {
-            .auth-container {
-                margin: 100px 1rem 2rem;
-                padding: 2rem 1.5rem;
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
             }
 
-            .header_inner {
-                padding: 0 1rem;
+            .auth-container {
+                padding: 25px 20px;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="page-wrapper">
-        <section class="section_hero">
-            <div class="background-style-1">
-                <header class="section_header">
-                    <div class="padding-vertical">
-                        <div class="header_inner">
-                            <a href="/" class="link-block">
-                                <img src="https://cdn.prod.website-files.com/6778e595b567d06d352b5abd/677b5fd93d2edf165d5b284f_atomicon.png"
-                                    loading="lazy" width="40" alt="" class="logo">
-                                <div class="text-block">Atom</div>
-                            </a>
-                            <nav class="header_nav hide-mobile-landscape">
-                                <a href="/features" class="header_nav-item">Features</a>
-                                <a href="/pricing" class="header_nav-item">Pricing</a>
-                                <a href="/apps" class="header_nav-item">Apps</a>
-                                <a href="/manual" class="header_nav-item">Manual</a>
-                                <a href="/contact" class="header_nav-item">Contact</a>
-                                <a href="https://atomtsk.webflow.io/login-register" class="header_nav-item">Login / Sign
-                                    Up</a>
-                            </nav>
-                        </div>
-                    </div>
-                </header>
-            </div>
-        </section>
-
-        <main class="main-wrapper">
-            <section>
-                <div class="auth-container">
-                    <!-- Toggle buttons for switching between login and register -->
-                    <div class="auth-toggle">
-                        <button id="loginToggle" class="active">Login</button>
-                        <button id="registerToggle">Register</button>
-                    </div>
-
-                    <!-- Login Form -->
-                    <form id="loginForm" class="auth-form active">
-                        <h2>Log In</h2>
-                        <div class="form-group">
-                            <label for="loginEmail">Email</label>
-                            <input type="email" id="loginEmail" required placeholder="Email address">
-                        </div>
-                        <div class="form-group">
-                            <label for="loginPassword">Password</label>
-                            <input type="password" id="loginPassword" required placeholder="Password">
-                        </div>
-                        <button type="submit" class="submit-btn">
-                            <span class="loading-spinner"></span>
-                            <span class="btn-text">Log In</span>
-                        </button>
-                        <div id="loginMessage" class="message"></div>
-                    </form>
-
-                    <!-- Register Form -->
-                    <form id="registerForm" class="auth-form">
-                        <h2>Create Account</h2>
-                        <div class="form-group">
-                            <label for="registerEmail">Email</label>
-                            <input type="email" id="registerEmail" required placeholder="Email address">
-                        </div>
-                        <div class="form-group">
-                            <label for="registerPassword">Password</label>
-                            <input type="password" id="registerPassword" required placeholder="Password">
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" required placeholder="Confirm password">
-                        </div>
-                        <button type="submit" class="submit-btn">
-                            <span class="loading-spinner"></span>
-                            <span class="btn-text">Register</span>
-                        </button>
-                        <div id="registerMessage" class="message"></div>
-                    </form>
+    <div class="container">
+        <div class="auth-container">
+            <div id="authSection">
+                <div class="auth-header">
+                    <h1>AI Generation Hub</h1>
+                    <p id="authSubtitle">Sign in to continue</p>
                 </div>
-            </section>
-        </main>
 
-        <footer class="section_footer">
-            <div class="container-large">
-                <div class="footer_bottom-wrapper">
-                    <div class="footer_credit-text">© 2023 AI. All rights reserved.</div>
+                <div class="auth-tabs">
+                    <button class="tab-button active" onclick="switchTab('login')">Login</button>
+                    <button class="tab-button" onclick="switchTab('register')">Register</button>
                 </div>
+
+                <div id="message" class="alert"></div>
+
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginEmail" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="loginEmail" name="email"
+                            placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" name="password"
+                            placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <span class="loading" style="display: none;"></span>
+                        <span class="button-text">Sign In</span>
+                    </button>
+                </form>
+
+                <form id="registerForm" class="auth-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="registerEmail" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="registerEmail" name="email"
+                            placeholder="Enter your email" required>
+                        <div class="form-text">We'll never share your email with anyone else.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="registerPassword" name="password"
+                            placeholder="Create a password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                            placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <span class="loading" style="display: none;"></span>
+                        <span class="button-text">Create Account</span>
+                    </button>
+                </form>
             </div>
-        </footer>
+
+            <div id="protectedContent" class="protected-content">
+                <h2>Welcome!</h2>
+                <p id="userEmail">You are successfully authenticated.</p>
+                <button class="btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Using the original backend functionality exactly as provided
         const API_BASE = 'https://atom-auth-prod.onrender.com';
         let currentToken = sessionStorage.getItem('userToken');
 
@@ -454,173 +320,115 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Toggle between login and register forms
-            const loginToggle = document.getElementById('loginToggle');
-            const registerToggle = document.getElementById('registerToggle');
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Show/hide forms
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
+            const subtitle = document.getElementById('authSubtitle');
 
-            function switchForm(showForm, hideForm, activeToggle, inactiveToggle) {
-                // Make inactive first
-                inactiveToggle.classList.remove('active');
-                // Add active class to toggle button
-                activeToggle.classList.add('active');
-                // Hide the current form first
-                hideForm.classList.remove('active');
-                // Small delay before showing the new form (for better animation)
-                setTimeout(() => {
-                    showForm.classList.add('active');
-                }, 50);
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                subtitle.textContent = 'Sign in to continue';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                subtitle.textContent = 'Join AI Generation Hub';
             }
 
-            loginToggle.addEventListener('click', function () {
-                switchForm(loginForm, registerForm, loginToggle, registerToggle);
-                hideMessage();
-            });
+            // Clear messages
+            hideMessage();
+        }
 
-            registerToggle.addEventListener('click', function () {
-                switchForm(registerForm, loginForm, registerToggle, loginToggle);
-                hideMessage();
-            });
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
 
-            // Function to display message with animation
-            function showMessage(element, message, isSuccess) {
-                element.textContent = message;
-                element.className = 'message';
-                // Small delay for animation to work properly
-                setTimeout(() => {
-                    element.classList.add(isSuccess ? 'success' : 'error');
-                    element.classList.add('visible');
-                }, 10);
-            }
+            setLoading(true, 'login');
 
-            // Function to clear message with animation
-            function clearMessage(element) {
-                element.classList.remove('visible');
-                setTimeout(() => {
-                    element.textContent = '';
-                    element.className = 'message';
-                }, 300);
-            }
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
 
-            // Function to set loading state
-            function setLoading(button, loading) {
-                const spinner = button.querySelector('.loading-spinner');
-                const text = button.querySelector('.btn-text');
-                const form = button.closest('form').id;
-                const originalText = form === 'loginForm' ? 'Log In' : 'Register';
+                const data = await response.json();
 
-                if (loading) {
-                    button.disabled = true;
-                    spinner.style.display = 'inline-block';
-                    text.textContent = 'Processing...';
+                if (response.ok && data.authenticated) {
+                    sessionStorage.setItem('userToken', data.token);
+                    sessionStorage.setItem("userEmail", email);
+                    currentToken = data.token;
+                    showMessage('Login successful! Redirecting...', 'success');
+
+                    // Redirect to Flask application after successful login
+                    setTimeout(() => {
+                        // Encode email and token safely in URL
+                        const params = new URLSearchParams({
+                            token: data.token,
+                            email: email
+                        });
+                        window.location.href = `/atom_auth?${params.toString()}`;
+                    }, 1000);
                 } else {
-                    button.disabled = false;
-                    spinner.style.display = 'none';
-                    text.textContent = originalText;
+                    showMessage(data.message || 'Login failed. Please check your credentials.', 'danger');
                 }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'danger');
+            } finally {
+                setLoading(false, 'login');
             }
-
-            // Login form handler - using original logic
-            document.getElementById('loginForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-                const loginMessage = document.getElementById('loginMessage');
-
-                clearMessage(loginMessage);
-                const submitBtn = e.target.querySelector('.submit-btn');
-                setLoading(submitBtn, true);
-
-                try {
-                    const response = await fetch(`${API_BASE}/login`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ email, password })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.authenticated) {
-                        sessionStorage.setItem('userToken', data.token);
-                        sessionStorage.setItem("userEmail", email);
-                        currentToken = data.token;
-                        showMessage(loginMessage, 'Login successful! Redirecting...', true);
-
-                        // Redirect to Flask application after successful login
-                        setTimeout(() => {
-                            // Encode email and token safely in URL
-                            const params = new URLSearchParams({
-                                token: data.token,
-                                email: email
-                            });
-                            window.location.href = `/atom_auth?${params.toString()}`;
-                        }, 1000);
-                    } else {
-                        showMessage(loginMessage, data.message || 'Login failed. Please check your credentials.', false);
-                    }
-                } catch (error) {
-                    showMessage(loginMessage, 'Network error. Please try again.', false);
-                } finally {
-                    setLoading(submitBtn, false);
-                }
-            });
-
-            // Register form handler - using original logic
-            document.getElementById('registerForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('registerEmail').value;
-                const password = document.getElementById('registerPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                const registerMessage = document.getElementById('registerMessage');
-
-                clearMessage(registerMessage);
-
-                if (password !== confirmPassword) {
-                    showMessage(registerMessage, 'Passwords do not match.', false);
-                    return;
-                }
-
-                const submitBtn = e.target.querySelector('.submit-btn');
-                setLoading(submitBtn, true);
-
-                try {
-                    const response = await fetch(`${API_BASE}/register`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ email, password })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        showMessage(registerMessage, 'Registration successful! You can now log in.', true);
-                        setTimeout(() => {
-                            loginToggle.click();
-                            document.getElementById('loginEmail').value = email;
-                        }, 1500);
-                    } else {
-                        showMessage(registerMessage, data.message || 'Registration failed. Please try again.', false);
-                    }
-                } catch (error) {
-                    showMessage(registerMessage, 'Network error. Please try again.', false);
-                } finally {
-                    setLoading(submitBtn, false);
-                }
-            });
-
-            // Make functions available globally for the original functionality
-            window.showMessage = showMessage;
-            window.clearMessage = clearMessage;
-            window.hideMessage = hideMessage;
         });
 
-        // Original verification function
+        // Register form handler
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match.', 'danger');
+                return;
+            }
+
+            setLoading(true, 'register');
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Registration successful! You can now log in.', 'success');
+                    setTimeout(() => {
+                        switchTab('login');
+                        document.getElementById('loginEmail').value = email;
+                    }, 1500);
+                } else {
+                    showMessage(data.message || 'Registration failed. Please try again.', 'danger');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'danger');
+            } finally {
+                setLoading(false, 'register');
+            }
+        });
+
         async function verifyAuthentication() {
             try {
                 const response = await fetch(`${API_BASE}/verify`, {
@@ -645,94 +453,63 @@
             }
         }
 
+        function showProtectedContent(email) {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('protectedContent').style.display = 'block';
+            document.getElementById('userEmail').textContent = `Welcome, ${email}!`;
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+            } catch (error) {
+                console.log('Logout request failed, but clearing local token anyway');
+            }
+
+            sessionStorage.removeItem('userToken');
+            currentToken = null;
+
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('protectedContent').style.display = 'none';
+
+            // Reset forms
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+
+            showMessage('You have been logged out successfully.', 'success');
+        }
+
+        function setLoading(loading, form) {
+            const button = document.querySelector(`#${form}Form .btn-primary`);
+            const loadingSpinner = button.querySelector('.loading');
+            const buttonText = button.querySelector('.button-text');
+
+            if (loading) {
+                button.disabled = true;
+                loadingSpinner.style.display = 'inline-block';
+                buttonText.textContent = 'Processing...';
+            } else {
+                button.disabled = false;
+                loadingSpinner.style.display = 'none';
+                buttonText.textContent = form === 'login' ? 'Sign In' : 'Create Account';
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `alert alert-${type}`;
+            messageEl.style.display = 'block';
+        }
+
         function hideMessage() {
-            const loginMessage = document.getElementById('loginMessage');
-            const registerMessage = document.getElementById('registerMessage');
-            if (loginMessage) loginMessage.style.display = 'none';
-            if (registerMessage) registerMessage.style.display = 'none';
+            document.getElementById('message').style.display = 'none';
         }
-
-        // Navigation authentication state checking (from original webflow code)
-        const AUTH_API_BASE_URL = 'https://atom-auth-prod.onrender.com';
-
-        function checkUserLoggedIn() {
-            const token = localStorage.getItem('auth_token');
-
-            if (!token) {
-                return Promise.reject('No auth token found');
-            }
-
-            return fetch(`${AUTH_API_BASE_URL}/verify`, {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to verify authentication');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.authenticated) {
-                        return data;
-                    } else {
-                        localStorage.removeItem('auth_token');
-                        throw new Error('Authentication failed');
-                    }
-                });
-        }
-
-        function updateNavigationElements(isAuthenticated) {
-            const navElements = document.querySelectorAll('a.header_nav-item');
-
-            navElements.forEach(element => {
-                const href = element.getAttribute('href');
-                const text = element.textContent.trim();
-
-                if (href && href.includes('/login-register') &&
-                    (text.includes('Login') || text.includes('Sign Up'))) {
-
-                    if (isAuthenticated) {
-                        element.setAttribute('href', 'https://atomtsk.webflow.io/dashboard');
-                        element.textContent = 'Account';
-                        element.style.transition = 'all 0.2s ease';
-                    } else {
-                        element.setAttribute('href', 'https://atomtsk.webflow.io/login-register');
-                        element.textContent = 'Login / Sign Up';
-                    }
-                }
-            });
-        }
-
-        function initNavigationUpdate() {
-            checkUserLoggedIn()
-                .then(userData => {
-                    updateNavigationElements(true);
-                })
-                .catch(error => {
-                    updateNavigationElements(false);
-                });
-        }
-
-        // Initialize navigation update when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initNavigationUpdate);
-        } else {
-            initNavigationUpdate();
-        }
-
-        // Listen for storage changes
-        window.addEventListener('storage', function (e) {
-            if (e.key === 'auth_token') {
-                setTimeout(initNavigationUpdate, 100);
-            }
-        });
-
-        // Listen for custom events
-        window.addEventListener('authStateChanged', function (e) {
-            updateNavigationElements(e.detail.isAuthenticated);
-        });
     </script>
 </body>
 
