@@ -25,8 +25,8 @@ async def generate_slide_preview(html_content, output_path, presentation_type):
             # Load the HTML file
             await page.goto(f"file://{os.path.abspath(temp_html_path)}")
             
-            # Wait for animations to complete
-            await page.wait_for_timeout(1000)
+            # Wait for animations and images to load
+            await page.wait_for_timeout(2000)
             
             # Take screenshot
             await page.screenshot(path=output_path, full_page=False)
@@ -41,7 +41,7 @@ async def generate_slide_preview(html_content, output_path, presentation_type):
         logger.error(f"Error generating preview image for {presentation_type}: {str(e)}")
         return False
 
-def generate_preview_images(yaml_content, topic, upload_folder):
+def generate_preview_images(yaml_content, topic, upload_folder, email):
     """Generate preview images for all HTML presentation types."""
     from services.document_service import create_html_from_yaml
     
@@ -50,7 +50,7 @@ def generate_preview_images(yaml_content, topic, upload_folder):
     
     for p_type in presentation_types:
         # Generate HTML content for the presentation type
-        html_result = create_html_from_yaml(yaml_content, os.path.join(upload_folder, f"temp_{p_type}.html"), html_presentation_type=p_type)
+        html_result = create_html_from_yaml(yaml_content, os.path.join(upload_folder, f"temp_{p_type}.html"), topic, email, html_presentation_type=p_type)
         if not html_result['success']:
             logger.error(f"Failed to generate HTML for {p_type} preview")
             continue

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Files - Presentation Studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            min-height: 100vh;
+        }
+
+        .clean-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, #000000 0%, #374151 100%);
+            border: 1px solid #000000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .primary-button:hover {
+            background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 16px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .secondary-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+
+        .secondary-button:hover {
+            background: rgba(249, 250, 251, 1);
+            border-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .danger-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+            transition: all 0.3s ease;
+        }
+
+        .danger-button:hover {
+            background: rgba(254, 242, 242, 1);
+            border-color: rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .file-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-card:hover {
+            background: rgba(249, 250, 251, 1);
+            border-color: rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-text {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: white;
+            letter-spacing: -0.025em;
+        }
+
+        .file-type-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .pptx-icon { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); }
+        .pdf-icon { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+        .docx-icon { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+        .html-icon { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+
+        .empty-state {
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px dashed rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        sessionStorage.setItem('userEmail', "{{ email }}");
+        sessionStorage.setItem('userToken', "{{ token }}");
+    </script>
+
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="flex items-center justify-between p-8 border-b border-gray-100 bg-black">
+            <div class="logo-container">
+                <img src="/static/atom2.gif" alt="Logo" class="w-8 h-8">
+                <span class="brand-text">Presentation Studio</span>
+            </div>
+            <button id="logoutBtn" class="danger-button px-6 py-2.5 rounded-xl font-medium text-sm">
+                Sign Out
+            </button>
+        </header>
+
+        <div class="max-w-6xl mx-auto px-8 py-12">
+            <!-- Page Header -->
+            <div class="clean-card rounded-3xl p-10 mb-8">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-3">My Presentations</h1>
+                    <p class="text-gray-600 text-lg">Access and manage your generated files</p>
+                </div>
+            </div>
+
+            <!-- Files Grid -->
+            {% if files %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                {% for file in files %}
+                <div class="file-card rounded-3xl p-6">
+                    <div class="text-center">
+                        <!-- File Type Icon -->
+                        <div class="file-type-icon mx-auto
+                            {% if file.file_type == 'pptx' %}pptx-icon
+                            {% elif file.file_type == 'pdf' %}pdf-icon
+                            {% elif file.file_type == 'docx' %}docx-icon
+                            {% elif file.file_type == 'html' %}html-icon
+                            {% endif %}">
+                            {% if file.file_type == 'pptx' %}📊
+                            {% elif file.file_type == 'pdf' %}📄
+                            {% elif file.file_type == 'docx' %}📝
+                            {% elif file.file_type == 'html' %}🌐
+                            {% endif %}
+                        </div>
+
+                        <!-- File Info -->
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{{ file.topic }}</h3>
+                        <p class="text-sm text-gray-500 mb-4">{{ file.file_type.upper() }} Format</p>
+
+                        <!-- Download Button -->
+                        <a href="{{ url_for('db_download_file', file_id=file.id) }}"
+                            class="primary-button inline-block w-full px-4 py-3 rounded-xl font-semibold text-white text-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                            Download File
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state rounded-3xl p-16 text-center">
+                <div class="text-6xl mb-6">📁</div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-3">No presentations yet</h3>
+                <p class="text-gray-600 mb-8">Create your first presentation to see it here</p>
+                <a href="{{ url_for('index') }}"
+                    class="primary-button inline-block px-8 py-4 rounded-2xl font-semibold text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                    Create Presentation
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Back to Generator -->
+            <div class="text-center">
+                <a href="{{ url_for('index') }}"
+                    class="secondary-button inline-block px-8 py-4 rounded-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                    ← Create New Presentation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', function () {
+                sessionStorage.removeItem('userEmail');
+                sessionStorage.removeItem('userToken');
+                window.location.href = '/logout';
+            });
+        });
+    </script>
+</body>
+
+</html>

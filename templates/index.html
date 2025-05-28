@@ -2,151 +2,479 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Presentation Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-    <link rel="stylesheet" href="static/css/index.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Presentation Studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            min-height: 100vh;
+        }
+
+        .clean-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, #000000 0%, #374151 100%);
+            border: 1px solid #000000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .primary-button:hover {
+            background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 16px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-field {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            color: #1f2937;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            background: rgba(255, 255, 255, 1);
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-field::placeholder {
+            color: rgba(107, 114, 128, 0.8);
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .option-card:hover {
+            background: rgba(249, 250, 251, 1);
+            border-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .option-card.selected {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: #000000;
+            box-shadow: 0 0 0 1px #000000;
+        }
+
+        .preview-thumbnail {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .preview-thumbnail:hover {
+            transform: scale(1.02) translateY(-2px);
+            background: rgba(249, 250, 251, 1);
+            box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.1);
+            border-color: rgba(0, 0, 0, 0.15);
+        }
+
+        .selected-thumbnail {
+            border: 2px solid #000000;
+            background: rgba(0, 0, 0, 0.03);
+            box-shadow: 0 0 0 1px #000000, 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .loader {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top: 3px solid #000000;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .secondary-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+
+        .secondary-button:hover {
+            background: rgba(249, 250, 251, 1);
+            border-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .danger-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+            transition: all 0.3s ease;
+        }
+
+        .danger-button:hover {
+            background: rgba(254, 242, 242, 1);
+            border-color: rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .slide-preview {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.1) 50%, transparent 100%);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-text {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: white;
+            letter-spacing: -0.025em;
+        }
+    </style>
 </head>
 
-<body class="bg-animated min-h-screen">
-    <canvas id="particleCanvas"></canvas>
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-12 fade-in">
-            <h1 class="text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
-                AI Presentation Generator
-            </h1>
-            <p class="text-xl text-indigo-200 font-light">Create stunning presentations with AI magic</p>
+<body>
+    <script>
+        sessionStorage.setItem('userEmail', "{{ email }}");
+        sessionStorage.setItem('userToken', "{{ token }}");
+    </script>
+
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="flex items-center justify-between p-8 border-b border-gray-100 bg-black">
+            <div class="logo-container">
+                <img src="/static/atom2.gif" alt="Logo" class="w-8 h-8">
+                <span class="brand-text">Presentation Studio</span>
+            </div>
+            <button id="logoutBtn" class="danger-button px-6 py-2.5 rounded-xl font-medium text-sm">
+                Sign Out
+            </button>
         </header>
-        <div class="max-w-3xl mx-auto bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-10 card-float glow-hover">
-            <form id="generationForm" class="space-y-8">
-                <div class="fade-in" style="animation-delay: 0.2s;">
-                    <label for="topic" class="block text-sm font-medium text-gray-800 mb-2">Presentation Topic</label>
-                    <textarea id="topic" name="topic" required
-                        class="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-4 focus:ring-indigo-300 focus:border-indigo-600 text-gray-900 placeholder-gray-400 transition-all duration-300"
-                        placeholder="Enter your topic here" oninput="updateTooltip(this.value)"></textarea>
+
+        <div class="max-w-4xl mx-auto px-8 py-12">
+            <!-- Main Form -->
+            <div class="clean-card rounded-3xl p-10 mb-8">
+                <div class="mb-10">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-3">Create Presentation</h1>
+                    <p class="text-gray-600 text-lg">Transform your ideas into professional presentations</p>
                 </div>
-                <div class="fade-in" style="animation-delay: 0.4s;">
-                    <label class="block text-sm font-medium text-gray-800 mb-2">Output Format</label>
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <input type="radio" id="pptx" name="file_type" value="pptx" checked class="hidden peer">
-                            <label for="pptx"
-                                class="radio-label block cursor-pointer text-center p-4 border border-gray-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked/radio-label hover:bg-gray-50 transition-all duration-300">
-                                <span class="block text-xl font-semibold text-gray-900">PowerPoint</span>
-                                <span class="text-sm text-gray-500">.pptx</span>
-                                <span class="block text-xs text-indigo-600 mt-2 font-medium">Includes Pexels
-                                    images</span>
+
+                <form id="generatorForm" class="space-y-8">
+                    <div>
+                        <label for="topic" class="block text-sm font-semibold text-gray-900 mb-4">What's your topic?</label>
+                        <input type="text" id="topic" name="topic"
+                            placeholder="e.g., 'Climate Change Solutions' or '5 slides on Machine Learning'"
+                            class="input-field w-full px-5 py-4 rounded-2xl focus:outline-none text-lg"
+                            required />
+                        <p class="text-sm text-gray-500 mt-3">💡 Pro tip: Specify the number of slides for better results</p>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-4">Choose format</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="option-card rounded-2xl p-6 cursor-pointer">
+                                <input type="radio" name="file_type" value="pptx" class="sr-only" checked />
+                                <div class="text-center">
+                                    <div class="text-3xl mb-3">📊</div>
+                                    <span class="text-gray-900 font-semibold block">PowerPoint</span>
+                                    <div class="text-xs text-gray-500 mt-1">PPTX Format</div>
+                                </div>
                             </label>
-                        </div>
-                        <div>
-                            <input type="radio" id="html" name="file_type" value="html" class="hidden peer"
-                                onclick="toggleHtmlOptions()">
-                            <label for="html"
-                                class="radio-label block cursor-pointer text-center p-4 border border-gray-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked/radio-label hover:bg-gray-50 transition-all duration-300">
-                                <span class="block text-xl font-semibold text-gray-900">HTML</span>
-                                <span class="text-sm text-gray-500">.html</span>
-                                <span class="block text-xs text-indigo-600 mt-2 font-medium">Interactive slides</span>
+                            <label class="option-card rounded-2xl p-6 cursor-pointer">
+                                <input type="radio" name="file_type" value="pdf" class="sr-only" />
+                                <div class="text-center">
+                                    <div class="text-3xl mb-3">📄</div>
+                                    <span class="text-gray-900 font-semibold block">PDF</span>
+                                    <div class="text-xs text-gray-500 mt-1">Document</div>
+                                </div>
                             </label>
-                        </div>
-                        <div>
-                            <input type="radio" id="docx" name="file_type" value="docx" class="hidden peer">
-                            <label for="docx"
-                                class="radio-label block cursor-pointer text-center p-4 border border-gray-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked/radio-label hover:bg-gray-50 transition-all duration-300">
-                                <span class="block text-xl font-semibold text-gray-900">Word</span>
-                                <span class="text-sm text-gray-500">.docx</span>
+                            <label class="option-card rounded-2xl p-6 cursor-pointer">
+                                <input type="radio" name="file_type" value="docx" class="sr-only" />
+                                <div class="text-center">
+                                    <div class="text-3xl mb-3">📝</div>
+                                    <span class="text-gray-900 font-semibold block">Word</span>
+                                    <div class="text-xs text-gray-500 mt-1">DOCX Format</div>
+                                </div>
                             </label>
-                        </div>
-                        <div>
-                            <input type="radio" id="pdf" name="file_type" value="pdf" class="hidden peer">
-                            <label for="pdf"
-                                class="radio-label block cursor-pointer text-center p-4 border border-gray-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked/radio-label hover:bg-gray-50 transition-all duration-300">
-                                <span class="block text-xl font-semibold text-gray-900">PDF</span>
-                                <span class="text-sm text-gray-500">.pdf</span>
+                            <label class="option-card rounded-2xl p-6 cursor-pointer">
+                                <input type="radio" name="file_type" value="html" class="sr-only" />
+                                <div class="text-center">
+                                    <div class="text-3xl mb-3">🌐</div>
+                                    <span class="text-gray-900 font-semibold block">Web</span>
+                                    <div class="text-xs text-gray-500 mt-1">HTML Format</div>
+                                </div>
                             </label>
                         </div>
                     </div>
-                </div>
-                <div id="htmlOptions" class="hidden fade-in" style="animation-delay: 0.5s;">
-                    <label class="block text-sm font-medium text-gray-800 mb-2">HTML Presentation Type</label>
-                    <div class="grid grid-cols-3 gap-6 overflow-visible relative">
-                        {% set options = [
-                        {'id': 'minimalist', 'title': 'Minimalist', 'desc': 'Clean and simple design', 'img':
-                        'previews/minimalist.png'},
-                        {'id': 'modern', 'title': 'Modern', 'desc': 'Bold and vibrant', 'img': 'previews/modern.png'},
-                        {'id': 'professional', 'title': 'Professional', 'desc': 'Formal and sleek', 'img': 'previews/professional.png'}
-                        ] %}
-                        {% for option in options %}
-                        <div class="relative group">
-                            <input type="radio" id="{{ option.id }}" name="html_presentation_type" value="{{ option.id }}"
-                                class="hidden peer" {% if loop.first %}checked{% endif %}>
-                            <label for="{{ option.id }}"
-                                class="radio-label block cursor-pointer text-center p-4 border border-gray-200 rounded-xl peer-checked:bg-indigo-50 peer-checked:border-indigo-600 hover:bg-gray-50 transition-all duration-300">
-                                <span class="block text-lg font-semibold text-gray-900">{{ option.title }}</span>
-                                <span class="text-xs text-gray-500">{{ option.desc }}</span>
-                            </label>
-                            <div
-                                class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-[200px] h-[150px] bg-white border border-gray-300 rounded-lg shadow-lg hidden group-hover:block z-10">
-                                <img src="{{ url_for('static', filename=option.img) }}" class="w-full h-full rounded-lg object-cover"
-                                    alt="{{ option.title }} Preview">
+
+                    <div id="htmlOptions" class="hidden">
+                        <div class="section-divider mb-6"></div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-4">Select style</label>
+                        <div id="presentationStyles" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center selected-thumbnail"
+                                data-style="minimalist">
+                                <img src="/static/previews/minimalist.png" alt="Minimalist Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2">Minimalist</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="modern">
+                                <img src="/static/previews/modern.png" alt="Modern Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2">Modern</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="professional">
+                                <img src="/static/previews/professional.png" alt="Professional Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2">Professional</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="corporate">
+                                <img src="/static/previews/corporate.png" alt="Corporate Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2 text-sm font-medium">Corporate</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="executive">
+                                <img src="/static/previews/executive.png" alt="Executive Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2 text-sm font-medium">Executive</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="elegant">
+                                <img src="/static/previews/elegant.png" alt="Elegant Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2 text-sm font-medium">Elegant</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="refined">
+                                <img src="/static/previews/refined.png" alt="Refined Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2 text-sm font-medium">Refined</p>
+                            </div>
+                            <div class="preview-thumbnail border border-gray-300 rounded-md p-3 text-center" data-style="glassy">
+                                <img src="/static/previews/glassy.png" alt="Glassy Style" class="w-full h-32 object-cover" />
+                                <p class="mt-2 text-sm font-medium">Glassy</p>
                             </div>
                         </div>
-                        {% endfor %}
+                        <input type="hidden" name="html_presentation_type" id="html_presentation_type" value="minimalist" />
                     </div>
-                </div>
-                <div class="fade-in" style="animation-delay: 0.6s;">
-                    <button type="submit" id="generateBtn"
-                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl btn-pulse transition-all duration-300 shadow-lg">
-                        Generate Presentation
-                    </button>
-                </div>
-            </form>
-            <div id="loadingIndicator" class="hidden mt-10 text-center fade-in">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-700 font-medium">Crafting your presentation...</p>
-                <p class="text-sm text-gray-500 mt-2">Please wait, this may take a moment</p>
+
+                    <div class="section-divider"></div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-4">Options</label>
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="include_images" name="include_images" value="true" checked
+                                class="w-5 h-5 text-black bg-white border-2 border-gray-300 rounded focus:ring-black focus:ring-2" />
+                            <label for="include_images" class="text-gray-700 font-medium">Include images in presentation</label>
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <button type="submit" id="generateBtn"
+                            class="primary-button flex-1 px-8 py-4 rounded-2xl font-semibold text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                            Generate Presentation
+                        </button>
+                        <a href="{{ url_for('my_files') }}"
+                            class="secondary-button text-center flex-1 px-8 py-4 rounded-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                            View My Files
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div id="resultContainer" class="hidden mt-10 fade-in">
-                <div class="bg-green-50/80 backdrop-blur-sm border border-green-200 rounded-xl p-6 mb-6">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <p class="text-green-700 font-semibold text-lg">Your presentation is ready!</p>
-                    </div>
-                </div>
-                <a id="downloadLink" href="#"
-                    class="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-center font-semibold py-4 px-6 rounded-xl btn-pulse mb-6 transition-all duration-300 shadow-lg">
-                    Download
-                </a>
-                <div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Content Preview</h3>
-                    <div id="previewContent"
-                        class="bg-gray-50/80 backdrop-blur-sm rounded-xl p-6 max-h-96 overflow-y-auto border custom-scrollbar">
-                        <!-- Preview content will be populated here -->
-                    </div>
-                    <p class="text-sm text-gray-500 mt-3">Note: PowerPoint presentations include relevant images from
-                        Pexels after each content slide.</p>
-                </div>
+
+            <!-- Loading State -->
+            <div id="loadingContainer" class="hidden clean-card rounded-3xl p-12 text-center">
+                <div class="loader mb-6"></div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Creating your presentation</h3>
+                <p class="text-gray-600">This usually takes 1-2 minutes</p>
             </div>
-            <div id="errorContainer" class="hidden mt-10 fade-in">
-                <div class="bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl p-6">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <p class="text-red-700 font-semibold text-lg" id="errorMessage">Something went wrong</p>
-                    </div>
+
+            <!-- Preview Container -->
+            <div id="previewContainer" class="hidden clean-card rounded-3xl p-10">
+                <h2 class="text-2xl font-bold text-gray-900 mb-8">Preview</h2>
+                
+                <div id="previewSlides" class="space-y-6 mb-8"></div>
+                
+                <div id="previewImages" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 hidden"></div>
+                
+                <div class="section-divider mb-8"></div>
+                
+                <div class="text-center">
+                    <a id="downloadLink" href="#"
+                        class="primary-button inline-block px-10 py-4 rounded-2xl font-semibold text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                        Download Presentation
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-    <script src="static/js/index.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const fileTypeInputs = document.querySelectorAll('input[name="file_type"]');
+            const htmlOptions = document.getElementById("htmlOptions");
+            const thumbnails = document.querySelectorAll(".preview-thumbnail");
+            const hiddenStyleInput = document.getElementById("html_presentation_type");
+            const includeImagesCheckbox = document.getElementById("include_images");
+            const optionCards = document.querySelectorAll('.option-card');
+
+            // Handle file type selection styling
+            optionCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    optionCards.forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                    
+                    if (radio.value === "html") {
+                        htmlOptions.classList.remove("hidden");
+                    } else {
+                        htmlOptions.classList.add("hidden");
+                    }
+                });
+            });
+
+            // Initialize first option as selected
+            optionCards[0].classList.add('selected');
+
+            // Toggle HTML options
+            fileTypeInputs.forEach((input) => {
+                input.addEventListener("change", function () {
+                    if (this.value === "html") {
+                        htmlOptions.classList.remove("hidden");
+                    } else {
+                        htmlOptions.classList.add("hidden");
+                    }
+                });
+            });
+
+            // Handle thumbnail selection
+            thumbnails.forEach((thumb) => {
+                thumb.addEventListener("click", function () {
+                    thumbnails.forEach((t) => t.classList.remove("selected-thumbnail"));
+                    this.classList.add("selected-thumbnail");
+                    hiddenStyleInput.value = this.dataset.style;
+                });
+            });
+
+            // Form submission
+            document.getElementById("generatorForm").addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                // Show loading
+                document.getElementById("loadingContainer").classList.remove("hidden");
+                document.getElementById("previewContainer").classList.add("hidden");
+
+                // Create FormData
+                const formData = new FormData(this);
+                formData.append("include_images", includeImagesCheckbox.checked ? "true" : "false");
+
+                // Submit form
+                fetch("/generate", {
+                    method: "POST",
+                    body: formData,
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    document.getElementById("loadingContainer").classList.add("hidden");
+
+                    if (data.success) {
+                        // Show preview
+                        document.getElementById("previewContainer").classList.remove("hidden");
+                        document.getElementById("downloadLink").href = data.file_url;
+
+                        // Display slides preview
+                        const previewSlides = document.getElementById("previewSlides");
+                        previewSlides.innerHTML = "";
+
+                        if (data.preview && data.preview.presentation && data.preview.presentation.slides) {
+                            const slides = data.preview.presentation.slides;
+                            slides.forEach((slide, index) => {
+                                const slideDiv = document.createElement("div");
+                                slideDiv.className = "slide-preview rounded-2xl p-6";
+
+                                const slideTitle = document.createElement("h3");
+                                slideTitle.className = "text-lg font-semibold text-gray-900 mb-4";
+                                slideTitle.textContent = `Slide ${index + 1}: ${slide.title}`;
+                                slideDiv.appendChild(slideTitle);
+
+                                if (slide.bullets && slide.bullets.length > 0) {
+                                    const bulletList = document.createElement("ul");
+                                    bulletList.className = "list-disc pl-6 text-gray-700 space-y-2";
+
+                                    slide.bullets.forEach((bullet) => {
+                                        const bulletItem = document.createElement("li");
+                                        bulletItem.textContent = bullet;
+                                        bulletList.appendChild(bulletItem);
+                                    });
+
+                                    slideDiv.appendChild(bulletList);
+                                }
+
+                                previewSlides.appendChild(slideDiv);
+                            });
+                        }
+
+                        // Show HTML style previews if available
+                        const previewImages = document.getElementById("previewImages");
+                        previewImages.innerHTML = "";
+
+                        if (data.preview_images && Object.keys(data.preview_images).length > 0) {
+                            previewImages.classList.remove("hidden");
+
+                            for (const [style, imgUrl] of Object.entries(data.preview_images)) {
+                                const img = document.createElement("img");
+                                img.src = imgUrl;
+                                img.alt = `${style} preview`;
+                                img.className = "rounded-2xl shadow-md w-full h-40 object-cover";
+                                previewImages.appendChild(img);
+                            }
+                        } else {
+                            previewImages.classList.add("hidden");
+                        }
+                    } else {
+                        alert(data.message || "Failed to generate presentation.");
+                    }
+                })
+                .catch((error) => {
+                    document.getElementById("loadingContainer").classList.add("hidden");
+                    alert("Error: " + error.message);
+                });
+            });
+
+            // Logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', function () {
+                sessionStorage.removeItem('userEmail');
+                sessionStorage.removeItem('userToken');
+                window.location.href = '/logout';
+            });
+        });
+    </script>
 </body>
 
 </html>
